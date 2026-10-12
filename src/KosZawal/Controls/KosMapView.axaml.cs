@@ -39,16 +39,20 @@ public partial class KosMapView : UserControl
     {
         InitializeComponent();
         // Nie buduj mapy przy starcie aplikacji (splash) — dopiero gdy zakładka staje się widoczna.
-        IsVisibleChanged += (_, _) =>
-        {
-            if (IsVisible)
-                EnsureMap();
-        };
         AttachedToVisualTree += (_, _) =>
         {
             if (IsVisible)
                 EnsureMap();
         };
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == IsVisibleProperty && IsVisible)
+            EnsureMap();
+        if (change.Property == RegionsProperty || change.Property == PinsProperty)
+            RefreshLayers();
     }
 
     public IReadOnlyList<VoivodeshipStat>? Regions
@@ -73,13 +77,6 @@ public partial class KosMapView : UserControl
     {
         get => GetValue(SelectedHospitalKeyProperty);
         set => SetValue(SelectedHospitalKeyProperty, value);
-    }
-
-    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
-    {
-        base.OnPropertyChanged(change);
-        if (change.Property == RegionsProperty || change.Property == PinsProperty)
-            RefreshLayers();
     }
 
     private void ShowOsm(object? sender, Avalonia.Interactivity.RoutedEventArgs e) =>
