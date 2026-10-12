@@ -194,21 +194,21 @@
             <Border Classes="card" Padding="8">
               <DockPanel>
                 <TextBlock DockPanel.Dock="Bottom" Margin="10" Classes="muted" Text="{Binding MapHover}" TextWrapping="Wrap" />
-                <controls:PolandMap Regions="{Binding RegionStats}" Pins="{Binding Pins}" HoverText="{Binding MapHover, Mode=TwoWay}" MinHeight="640" />
+                <controls:KosMapView Regions="{Binding RegionStats}" Pins="{Binding Pins}" HoverText="{Binding MapHover, Mode=TwoWay}" />
               </DockPanel>
             </Border>
             <Border Grid.Column="1" Classes="card">
               <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Classes="card-kicker" Text="OSRODKI KOS-ZAWAŁ" Margin="0,0,0,8" />
+                <TextBlock DockPanel.Dock="Top" Classes="card-kicker" Text="LISTA OBOK MAPY" Margin="0,0,0,8" />
                 <TextBlock DockPanel.Dock="Top" Classes="muted" TextWrapping="Wrap" Margin="0,0,0,8"
-                           Text="Kolor morski i koralowy: punkt z geokodowania. Złoty: środek województwa, gdy nie udało się ustalić adresu." />
+                           Text="OpenStreetMap: wszystkie ośrodki KOS. Liderzy: największa liczba hospitalizacji w województwie. Złoty punkt = położenie przybliżone." />
                 <ScrollViewer>
-                  <ItemsControl ItemsSource="{Binding Pins}">
+                  <ItemsControl ItemsSource="{Binding MapSideList}">
                     <ItemsControl.ItemTemplate>
-                      <DataTemplate x:DataType="vm:HospitalPin">
+                      <DataTemplate x:DataType="vm:MapSideItem">
                         <StackPanel Margin="0,0,0,10">
-                          <TextBlock Text="{Binding Name}" TextWrapping="Wrap" FontWeight="SemiBold" />
-                          <TextBlock Classes="muted" Text="{Binding Voivodeship}" />
+                          <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                          <TextBlock Classes="muted" Text="{Binding Subtitle}" TextWrapping="Wrap" />
                         </StackPanel>
                       </DataTemplate>
                     </ItemsControl.ItemTemplate>

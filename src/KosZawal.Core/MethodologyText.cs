@@ -57,8 +57,38 @@ public static class MethodologyText
 
         Dane przygotowano wg stanu bazy Centrali NFZ na dzień 15.06.2026 r.
 
-        Jak liczone są wskaźniki na ekranie startowym
+        """;
 
-        Odsetek zawałów objętych KOS-zawał w skali kraju to suma iloczynów (odsetek hospitalizacji w KOS × liczba hospitalizacji) po ośrodkach, podzielona przez wszystkie hospitalizacje zawałowe w Polsce w wybranym roku i typie zawału. Ośrodek realizujący to placówka, dla której NFZ oznaczył „czy KOS” = TAK, czyli sprawozdała w danym roku hospitalizację w programie. Raport nie publikuje osobnego rejestru umów — liczba szpitali na ekranie startowym jest liczbą realizatorów według tej definicji.
+    public const string KpiExplanation = """
+        Jak liczone są wskaźniki na ekranie startowym (ta sama metoda dla 2024 i 2025)
+
+        1 i 5. Odsetek zawałów objętych KOS w skali kraju
+           licznik = Σ (proc_KOS × liczba_hospitalizacji) z tabeli KOS-zawał dla roku i typu zawału
+           mianownik = Σ liczba_hospitalizacji z tabeli Placówki dla tego samego roku i typu
+           udział = licznik / mianownik
+           W tym modelu punkty „odsetek przypadków objętych KOS” i „odsetek w skali całego kraju” to jeden wskaźnik.
+
+        2. Liczba szpitali / świadczeniobiorców
+           COUNT placówek z czy_KOS = TAK w tabeli Placówki dla roku i typu.
+           To nie jest rejestr umów NFZ — raport Power BI nie publikuje osobnej listy umów.
+           Oznacza ośrodki, które sprawozdały co najmniej jedną hospitalizację w programie (zgodnie z metodyką NFZ: niezakończoną zgonem).
+
+        3. Liczba województw z realizatorami
+           liczba województw, w których COUNT z punktu 2 jest ≥ 1.
+
+        4. Ośrodki według województwa
+           ten sam COUNT z punktu 2, pogrupowany po województwie.
+
+        Udział „w ośrodkach KOS”
+           ten sam licznik co w punkcie 1, ale mianownik = Σ liczba_hospitalizacji tylko z tabeli KOS-zawał.
+
+        Lider województwa na mapie
+           wśród ośrodków KOS w danym województwie wybierany jest ten z największą liczbą hospitalizacji zawałowych (tabela Placówki / pin mapy) dla wybranego roku i typu.
+
+        Porównanie z komunikatem CeZ/NFZ „40% w 2024”
+           Raport CeZ (Tabela 2.1) podaje dla 2024:
+           · 37,4% wśród wszystkich przypadków zawału,
+           · 40,1% po wyłączeniu zgonów wewnątrzszpitalnych — to jest publiczne „40%”.
+           Aplikacja liczy z publicznego Power BI hospitalizacje bez korekty zgonów i bez łączenia epizodów pacjenta, więc dla 2024 (typ łącznie) wychodzi ok. 34,5%. To nie jest błąd arytmetyczny, tylko inna definicja mianownika.
         """;
 }

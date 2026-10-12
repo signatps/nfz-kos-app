@@ -1,0 +1,274 @@
+using System.Globalization;
+using System.Text.Json;
+using Avalonia.Platform;
+using Mapsui;
+using Mapsui.Nts;
+using Mapsui.Projections;
+using Mapsui.Styles;
+using NetTopologySuite.Geometries;
+using Color = Mapsui.Styles.Color;
+
+namespace KosZawal.Controls;
+
+internal static class VoivodeshipGeo
+{
+    private static IReadOnlyList<VoivodeshipPolygon>? _polygons;
+
+    public static IReadOnlyList<VoivodeshipPolygon> Polygons => _polygons ??= Load();
+
+    public static IEnumerable<IFeature> BorderFeatures(IReadOnlyList<VoivodeshipStat>? regions, bool fillByShare)
+    {
+        var shares = (regions ?? [])
+            .ToDictionary(region => region.Name, region => region.Share, StringComparer.CurrentCultureIgnoreCase);
+
+        foreach (var polygon in Polygons)
+        {
+            shares.TryGetValue(polygon.Name, out var share);
+            var fill = fillByShare
+                ? ColorFor(share)
+                : new Color(14, 110, 106, 28);
+            var feature = new GeometryFeature(polygon.Geometry)
+            {
+                ["name"] = polygon.Name,
+                ["share"] = share,
+            };
+            feature.Styles.Add(new VectorStyle
+            {
+                Fill = new Brush(fill),
+                Outline = new Pen(new Color(255, 255, 255, 220), fillByShare ? 1.6 : 2.2),
+            });
+            yield return feature;
+        }
+    }
+
+    public static IEnumerable<IFeature> CityFeatures(bool capitalsOnly)
+    {
+        foreach (var city in PolandCities.All.Where(city => !capitalsOnly || city.IsCapital))
+        {
+            var (x, y) = SphericalMercator.FromLonLat(city.Longitude, city.Latitude);
+            var feature = new GeometryFeature(new Point(x, y))
+            {
+                ["name"] = city.Name,
+                ["woj"] = city.Voivodeship,
+                ["capital"] = city.IsCapital,
+            };
+            feature.Styles.Add(new SymbolStyle
+            {
+                SymbolScale = city.IsCapital ? 0.55 : 0.38,
+                Fill = new Brush(city.IsCapital ? new Color(196, 71, 79) : new Color(22, 50, 79)),
+                Outline = new Pen(Color.White, 1.4),
+            });
+            feature.Styles.Add(new LabelStyle
+            {
+                Text = city.Name,
+                ForeColor = new Color(18, 36, 51),
+                BackColor = new Brush(new Color(243, 240, 232, 210)),
+                Font = new Font { FontFamily = "Inter", Size = city.IsCapital ? 13 : 11 },
+                Offset = new Offset(0, city.IsCapital ? -18 : -14),
+                CollisionDetection = true,
+            });
+            yield return feature;
+        }
+    }
+
+    public static IEnumerable<IFeature> HospitalFeatures(IReadOnlyList<HospitalPin>? pins)
+    {
+        foreach (var pin in pins ?? [])
+        {
+            if (!TryLocate(pin, out var lon, out var lat))
+                continue;
+            var (x, y) = SphericalMercator.FromLonLat(lon, lat);
+            var color = pin.Quality == "nominatim"
+                ? (pin.KosShare ?? 0) >= 0.5 ? new Color(196, 71, 79) : new Color(14, 110, 106)
+                : new Color(138, 106, 47);
+            var feature = new GeometryFeature(new Point(x, y))
+            {
+                ["name"] = pin.Name,
+                ["woj"] = pin.Voivodeship,
+                ["hosp"] = pin.Hospitalizations,
+                ["share"] = pin.KosShare ?? 0,
+                ["quality"] = pin.Quality,
+            };
+            feature.Styles.Add(new SymbolStyle
+            {
+                SymbolScale = 0.45 + Math.Min(0.35, Math.Sqrt(Math.Max(pin.Hospitalizations, 0)) / 80),
+                Fill = new Brush(color),
+                Outline = new Pen(Color.White, 1.3),
+            });
+            yield return feature;
+        }
+    }
+
+    public static IEnumerable<IFeature> LeaderFeatures(IReadOnlyList<HospitalPin>? pins)
+    {
+        var leaders = (pins ?? [])
+            .GroupBy(pin => pin.Voivodeship, StringComparer.CurrentCultureIgnoreCase)
+            .Select(group => group.OrderByDescending(pin => pin.Hospitalizations).ThenBy(pin => pin.Name).First())
+            .OrderByDescending(pin => pin.Hospitalizations)
+            .ToList();
+
+        foreach (var pin in leaders)
+        {
+            if (!TryLocate(pin, out var lon, out var lat))
+                continue;
+            var (x, y) = SphericalMercator.FromLonLat(lon, lat);
+            var feature = new GeometryFeature(new Point(x, y))
+            {
+                ["name"] = pin.Name,
+                ["woj"] = pin.Voivodeship,
+                ["hosp"] = pin.Hospitalizations,
+                ["share"] = pin.KosShare ?? 0,
+                ["quality"] = pin.Quality,
+                ["leader"] = true,
+            };
+            feature.Styles.Add(new SymbolStyle
+            {
+                SymbolScale = 0.72,
+                Fill = new Brush(new Color(196, 71, 79)),
+                Outline = new Pen(Color.White, 2),
+            });
+            feature.Styles.Add(new LabelStyle
+            {
+                Text = $"{pin.Voivodeship}\n{ShortName(pin.Name)} · {pin.Hospitalizations:N0}",
+                ForeColor = new Color(18, 36, 51),
+                BackColor = new Brush(new Color(243, 240, 232, 230)),
+                Font = new Font { FontFamily = "Inter", Size = 12 },
+                Offset = new Offset(0, -22),
+                CollisionDetection = true,
+            });
+            yield return feature;
+        }
+    }
+
+    private static string ShortName(string name)
+    {
+        if (name.Length <= 42)
+            return name;
+        return name[..39] + "…";
+    }
+
+    public static MRect PolandExtent()
+    {
+        var (minX, minY) = SphericalMercator.FromLonLat(14.0, 48.9);
+        var (maxX, maxY) = SphericalMercator.FromLonLat(24.3, 55.1);
+        return new MRect(minX, minY, maxX, maxY);
+    }
+
+    private static bool TryLocate(HospitalPin pin, out double lon, out double lat)
+    {
+        if (pin.Latitude is double pinLat && pin.Longitude is double pinLon && pin.Quality == "nominatim")
+        {
+            lon = pinLon;
+            lat = pinLat;
+            return true;
+        }
+
+        var shape = Polygons.FirstOrDefault(item =>
+            string.Equals(item.Name, pin.Voivodeship, StringComparison.CurrentCultureIgnoreCase));
+        if (shape is null)
+        {
+            lon = 0;
+            lat = 0;
+            return false;
+        }
+
+        var hash = pin.Name.GetHashCode(StringComparison.Ordinal);
+        lon = shape.CenterLon + ((hash & 255) - 128) / 128.0 * 0.35;
+        lat = shape.CenterLat + (((hash >> 8) & 255) - 128) / 128.0 * 0.22;
+        return true;
+    }
+
+    private static Color ColorFor(double share)
+    {
+        var t = Math.Clamp(share / 0.7, 0, 1);
+        return new Color(
+            (int)(213 + (14 - 213) * t),
+            (int)(228 + (110 - 228) * t),
+            (int)(234 + (106 - 234) * t),
+            170);
+    }
+
+    private static IReadOnlyList<VoivodeshipPolygon> Load()
+    {
+        try
+        {
+            using var stream = AssetLoader.Open(new Uri("avares://KosZawal/Assets/wojewodztwa.geojson"));
+            using var document = JsonDocument.Parse(stream);
+            var list = new List<VoivodeshipPolygon>();
+            var factory = GeometryFactory.Default;
+            foreach (var feature in document.RootElement.GetProperty("features").EnumerateArray())
+            {
+                var rawName = feature.GetProperty("properties").GetProperty("nazwa").GetString() ?? "";
+                var name = rawName.Length == 0
+                    ? rawName
+                    : char.ToUpper(rawName[0], CultureInfo.GetCultureInfo("pl-PL")) + rawName[1..];
+                var geometry = ReadGeometry(feature.GetProperty("geometry"), factory);
+                if (geometry is null || geometry.IsEmpty)
+                    continue;
+                var centroid = geometry.Centroid;
+                var (lon, lat) = SphericalMercator.ToLonLat(centroid.X, centroid.Y);
+                list.Add(new VoivodeshipPolygon(name, geometry, lon, lat));
+            }
+
+            return list;
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    private static Geometry? ReadGeometry(JsonElement geometry, GeometryFactory factory)
+    {
+        var type = geometry.GetProperty("type").GetString();
+        var coordinates = geometry.GetProperty("coordinates");
+        if (type == "Polygon")
+            return factory.CreatePolygon(ReadRing(coordinates[0]), ReadHoles(coordinates));
+        if (type == "MultiPolygon")
+        {
+            var polygons = new List<Polygon>();
+            foreach (var polygon in coordinates.EnumerateArray())
+            {
+                var poly = factory.CreatePolygon(ReadRing(polygon[0]), ReadHoles(polygon));
+                if (!poly.IsEmpty)
+                    polygons.Add(poly);
+            }
+
+            return polygons.Count == 0 ? null : factory.CreateMultiPolygon(polygons.ToArray());
+        }
+
+        return null;
+    }
+
+    private static LinearRing ReadRing(JsonElement ring)
+    {
+        var coords = new List<Coordinate>();
+        var step = Math.Max(1, ring.GetArrayLength() / 240);
+        var index = 0;
+        foreach (var pair in ring.EnumerateArray())
+        {
+            if (index++ % step != 0 && index != ring.GetArrayLength())
+                continue;
+            var lon = pair[0].GetDouble();
+            var lat = pair[1].GetDouble();
+            var (x, y) = SphericalMercator.FromLonLat(lon, lat);
+            coords.Add(new Coordinate(x, y));
+        }
+
+        if (coords.Count > 0 && (Math.Abs(coords[0].X - coords[^1].X) > 1e-6 || Math.Abs(coords[0].Y - coords[^1].Y) > 1e-6))
+            coords.Add(new Coordinate(coords[0].X, coords[0].Y));
+        return GeometryFactory.Default.CreateLinearRing(coords.ToArray());
+    }
+
+    private static LinearRing[] ReadHoles(JsonElement polygon)
+    {
+        if (polygon.GetArrayLength() <= 1)
+            return [];
+        var holes = new List<LinearRing>();
+        for (var i = 1; i < polygon.GetArrayLength(); i++)
+            holes.Add(ReadRing(polygon[i]));
+        return holes.ToArray();
+    }
+}
+
+internal sealed record VoivodeshipPolygon(string Name, Geometry Geometry, double CenterLon, double CenterLat);

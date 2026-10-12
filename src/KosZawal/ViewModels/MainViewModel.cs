@@ -21,6 +21,12 @@ public sealed class RegionRow
     public required double Bar { get; init; }
 }
 
+public sealed class MapSideItem
+{
+    public required string Title { get; init; }
+    public required string Subtitle { get; init; }
+}
+
 public sealed class GridRow
 {
     public GridRow(string[] cells) => Cells = cells;
@@ -57,6 +63,7 @@ public partial class MainViewModel : ObservableObject
     public ObservableCollection<GridRow> Rows { get; } = [];
     public ObservableCollection<RegionRow> RegionRows { get; } = [];
     public ObservableCollection<HospitalPin> Pins { get; } = [];
+    public ObservableCollection<MapSideItem> MapSideList { get; } = [];
     public string[] InfarctTypes { get; } = ReportCatalog.InfarctTypes;
     public string[] ExportChoices { get; } =
     [
@@ -123,10 +130,10 @@ public partial class MainViewModel : ObservableObject
         if (!VoivodeshipOptions.Contains(VoivodeshipOption))
             VoivodeshipOption = "Cała Polska";
 
-        var refreshed = _database.Meta("refreshed_at");
-        var synced = _database.Meta("synced_at");
-        Provenance = $"Raport NFZ „zawały”. Odświeżenie modelu: {refreshed ?? "—"}. Pobrano lokalnie: {synced ?? "—"}.";
-        Methodology = _database.Meta("methodology") ?? MethodologyText.Fallback;
+        var refreshed = MetaDates.Format(_database.Meta("refreshed_at"));
+        var synced = MetaDates.Format(_database.Meta("synced_at"));
+        Provenance = $"Raport NFZ „zawały”. Odświeżenie modelu: {refreshed}. Pobrano lokalnie: {synced}.";
+        Methodology = BuildMethodology();
         _loading = false;
         Activate(Current);
     }
@@ -249,8 +256,72 @@ public partial class MainViewModel : ObservableObject
     private void LoadPins()
     {
         Pins.Clear();
+        MapSideList.Clear();
         foreach (var pin in _database.Hospitals(Year, InfarctType))
             Pins.Add(pin);
+
+        var leaders = Pins
+            .GroupBy(pin => pin.Voivodeship, StringComparer.CurrentCultureIgnoreCase)
+            .Select(group => group.OrderByDescending(pin => pin.Hospitalizations).ThenBy(pin => pin.Name).First())
+            .OrderByDescending(pin => pin.Hospitalizations)
+            .ToList();
+        foreach (var leader in leaders)
+        {
+            MapSideList.Add(new MapSideItem
+            {
+                Title = $"{leader.Voivodeship}: {leader.Name}",
+                Subtitle = $"{leader.Hospitalizations.ToString("N0", _culture)} hospitalizacji · KOS {(leader.KosShare ?? 0).ToString("0.0%", _culture)}"
+                    + (leader.Quality == "nominatim" ? "" : " · położenie przybliżone"),
+            });
+        }
+    }
+
+    private string BuildMethodology()
+    {
+        var report = _database.Meta("methodology") ?? MethodologyText.Fallback;
+        var comparison = BuildYearComparison();
+        return report.Trim()
+               + "\n\n"
+               + MethodologyText.KpiExplanation.Trim()
+               + "\n\n"
+               + comparison;
+    }
+
+    private string BuildYearComparison()
+    {
+        var type = InfarctType;
+        var lines = new List<string>
+        {
+            "Porównanie wskaźników aplikacji dla lat 2024 i 2025",
+            "",
+            $"Typ zawału: {type}",
+            "Ta sama formuła dla obu lat — różnice wynikają wyłącznie z danych sprawozdanych w raporcie NFZ, nie z innej metodyki aplikacji.",
+            "",
+        };
+
+        foreach (var year in new[] { 2025, 2024 })
+        {
+            if (!_database.Years().Contains(year))
+            {
+                lines.Add($"{year}: brak danych w lokalnej bazie.");
+                continue;
+            }
+
+            var kpi = _database.Compute(year, type);
+            lines.Add(
+                $"{year}: udział krajowy {kpi.NationalShare.ToString("0.0%", _culture)} "
+                + $"({kpi.KosHospitalizations.ToString("N0", _culture)} z {kpi.Hospitalizations.ToString("N0", _culture)}); "
+                + $"ośrodki KOS {kpi.Centers.ToString("N0", _culture)}; "
+                + $"województwa {kpi.VoivodeshipsWithCenters.ToString("N0", _culture)}; "
+                + $"udział w ośrodkach KOS {kpi.ShareAmongKosCenters.ToString("0.0%", _culture)}.");
+        }
+
+        lines.Add("");
+        lines.Add(
+            "Uwaga do komunikatów prasowych: odsetek „w skali kraju” w aplikacji to ważona średnia odsetków KOS po wszystkich hospitalizacjach zawałowych (placówki). "
+            + "Nie korygujemy zgonów poza tym, co już zrobił raport (KOS liczy hospitalizacje niezakończone zgonem). "
+            + "Zakładka Województwa / „Program KOS-zawał” w raporcie to inny wskaźnik: odsetek świadczeniodawców aktywnych w programie, nie odsetek przypadków.");
+        return string.Join('\n', lines);
     }
 
     private void LoadTable()

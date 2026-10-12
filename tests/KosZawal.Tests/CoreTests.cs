@@ -36,6 +36,17 @@ public class DsrParserTests
     }
 }
 
+public class MetaDatesTests
+{
+    [Fact]
+    public void FormatsAspNetJsonDate()
+    {
+        var text = MetaDates.Format("/Date(1782197836247)/");
+        Assert.DoesNotContain("/Date", text);
+        Assert.Contains("2026", text);
+    }
+}
+
 public class KpiTests
 {
     [Fact]

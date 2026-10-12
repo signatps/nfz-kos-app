@@ -16,7 +16,9 @@ Dla wybranego roku (domyślnie 2025) i typu zawału:
 
 Osobno widać udział liczony tylko wśród ośrodków, które program realizują.
 
-Mapa to podział administracyjny Polski. Ośrodki KOS są naniesione jako punkty. Złoty punkt oznacza położenie przybliżone do środka województwa.
+Mapa korzysta z kafelków OpenStreetMap (wymaga sieci). Dostępne tryby: wszystkie ośrodki KOS, widok administracyjny (województwa + główne miasta) oraz liderzy województw (ośrodek z największą liczbą hospitalizacji). Złoty punkt oznacza położenie przybliżone.
+
+Komunikat CeZ/NFZ o „40% w 2024” dotyczy udziału wśród przypadków **bez zgonów wewnątrzszpitalnych**. Wskaźnik aplikacji z raportu Power BI liczy wszystkie hospitalizacje i dla 2024 daje ok. 34,5% (typ łącznie).
 
 ## Uruchomienie
 

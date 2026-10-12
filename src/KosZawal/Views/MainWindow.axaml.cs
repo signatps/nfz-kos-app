@@ -1,5 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Data;
+using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.Platform.Storage;
 
 namespace KosZawal;
@@ -60,12 +62,16 @@ public partial class MainWindow : Window
         if (bundle is null)
         {
             model.Status = "Najpierw pobierz dane.";
+            await ShowNoticeAsync("Eksport", "Najpierw pobierz dane z raportu NFZ.");
             return;
         }
 
         if (extension == "xlsx" && bundle.Rows.Count > TableExporter.XlsxRowLimit)
         {
-            model.Status = $"Ten wynik ma {bundle.Rows.Count:N0} wierszy. XLSX zapisuje do {TableExporter.XlsxRowLimit:N0}. Zawęź filtry albo wybierz CSV.";
+            var warning =
+                $"Ten wynik ma {bundle.Rows.Count:N0} wierszy. XLSX zapisuje do {TableExporter.XlsxRowLimit:N0}. Zawęź filtry albo wybierz CSV.";
+            model.Status = warning;
+            await ShowNoticeAsync("Eksport XLSX", warning);
             return;
         }
 
@@ -82,11 +88,69 @@ public partial class MainWindow : Window
             return;
 
         var path = file.Path.LocalPath;
-        if (extension == "csv")
-            TableExporter.WriteCsv(path, bundle.Dataset, bundle.Rows);
-        else
-            TableExporter.WriteXlsx(path, bundle.Dataset, bundle.Rows);
-        model.Status = $"Zapisano {bundle.Rows.Count:N0} wierszy do {path}";
+        try
+        {
+            if (extension == "csv")
+                TableExporter.WriteCsv(path, bundle.Dataset, bundle.Rows);
+            else
+                TableExporter.WriteXlsx(path, bundle.Dataset, bundle.Rows);
+        }
+        catch (Exception ex)
+        {
+            model.Status = "Błąd zapisu: " + ex.Message;
+            await ShowNoticeAsync("Eksport nieudany", ex.Message);
+            return;
+        }
+
+        var message = $"Zapisano {bundle.Rows.Count:N0} wierszy zbioru „{bundle.Dataset.Title}” do:\n{path}";
+        model.Status = message.Replace('\n', ' ');
+        await ShowNoticeAsync("Eksport zakończony", message);
+    }
+
+    private async Task ShowNoticeAsync(string title, string message)
+    {
+        var dialog = new Window
+        {
+            Title = title,
+            Width = 520,
+            Height = 220,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            CanResize = false,
+            Background = new SolidColorBrush(Color.Parse("#F3F0E8")),
+        };
+        var ok = new Button
+        {
+            Content = "OK",
+            Classes = { "action" },
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Margin = new Avalonia.Thickness(0, 16, 0, 0),
+        };
+        ok.Click += (_, _) => dialog.Close();
+        dialog.Content = new Border
+        {
+            Padding = new Avalonia.Thickness(22),
+            Child = new StackPanel
+            {
+                Spacing = 10,
+                Children =
+                {
+                    new TextBlock
+                    {
+                        Text = title,
+                        FontSize = 20,
+                        FontWeight = FontWeight.SemiBold,
+                    },
+                    new TextBlock
+                    {
+                        Text = message,
+                        TextWrapping = TextWrapping.Wrap,
+                        LineHeight = 22,
+                    },
+                    ok,
+                },
+            },
+        };
+        await dialog.ShowDialog(this);
     }
 }
 
