@@ -4,6 +4,7 @@ using Avalonia.Threading;
 using Mapsui;
 using Mapsui.Layers;
 using Mapsui.Manipulations;
+using Mapsui.Projections;
 using Mapsui.Tiling;
 
 namespace KosZawal.Controls;
@@ -35,12 +36,15 @@ public partial class KosMapView : UserControl
     private MapDisplayMode _mode = MapDisplayMode.OsmHospitals;
     private bool _ready;
     private bool _building;
+    private bool _sizeHooked;
+    private bool _fittedPoland;
 
     public KosMapView()
     {
         InitializeComponent();
         AttachedToVisualTree += (_, _) =>
         {
+            HookSizeEvents();
             if (IsVisible)
                 EnsureMap();
         };
@@ -50,7 +54,12 @@ public partial class KosMapView : UserControl
     {
         base.OnPropertyChanged(change);
         if (change.Property == IsVisibleProperty && IsVisible)
+        {
             EnsureMap();
+            // Po ponownym wejściu w zakładkę Mapa — wymuś kadr na Polskę.
+            Dispatcher.UIThread.Post(() => FitPoland(force: true), DispatcherPriority.Background);
+        }
+
         if (change.Property == RegionsProperty || change.Property == PinsProperty)
             RefreshLayers();
     }
@@ -102,7 +111,7 @@ public partial class KosMapView : UserControl
                 "Ośrodki KOS na mapie Polski. Złoty trójkąt = lider województwa, kropka = pozostałe. Kliknij punkt.",
         };
         RefreshLayers();
-        FitPoland();
+        FitPoland(force: true);
     }
 
     private void StyleModeButtons()
@@ -118,6 +127,19 @@ public partial class KosMapView : UserControl
         button.Classes.Set("quiet", !active);
     }
 
+    private void HookSizeEvents()
+    {
+        if (_sizeHooked)
+            return;
+        _sizeHooked = true;
+        MapControl.SizeChanged += (_, e) =>
+        {
+            if (e.NewSize.Width > 32 && e.NewSize.Height > 32)
+                FitPoland(force: !_fittedPoland);
+        };
+        MapControl.Loaded += (_, _) => FitPoland(force: true);
+    }
+
     private void EnsureMap()
     {
         if (_ready || _building)
@@ -126,6 +148,8 @@ public partial class KosMapView : UserControl
 
         try
         {
+            HookSizeEvents();
+
             var map = new Map
             {
                 CRS = "EPSG:3857",
@@ -142,6 +166,7 @@ public partial class KosMapView : UserControl
 
             var extent = VoivodeshipGeo.PolandExtent();
             map.Navigator.OverridePanBounds = extent;
+            // ZoomToBox przy viewport 0×0 jest no-op — FitPoland wołamy z SizeChanged/Loaded.
             map.Tapped += OnMapTapped;
             map.Info += OnMapInfo;
 
@@ -149,7 +174,6 @@ public partial class KosMapView : UserControl
             StyleModeButtons();
             _ready = true;
 
-            // Maskę i pinezki dopiero po przypięciu MapControl — unikamy ciężkiej pracy w konstruktorze.
             Dispatcher.UIThread.Post(() =>
             {
                 try
@@ -161,7 +185,7 @@ public partial class KosMapView : UserControl
                     }
 
                     RefreshLayers();
-                    FitPoland();
+                    FitPoland(force: true);
                 }
                 catch (Exception ex)
                 {
@@ -214,17 +238,41 @@ public partial class KosMapView : UserControl
         }
     }
 
-    private void FitPoland()
+    private void FitPoland(bool force = false)
     {
         try
         {
-            if (MapControl.Map is null)
+            if (!_ready || MapControl.Map is null)
                 return;
-            MapControl.Map.Navigator.ZoomToBox(VoivodeshipGeo.PolandExtent());
+
+            var width = MapControl.Bounds.Width;
+            var height = MapControl.Bounds.Height;
+            if (width < 32 || height < 32)
+                return;
+
+            if (_fittedPoland && !force)
+                return;
+
+            var navigator = MapControl.Map.Navigator;
+            navigator.SetSize(width, height);
+
+            var extent = VoivodeshipGeo.PolandExtent();
+            navigator.OverridePanBounds = extent;
+            navigator.ZoomToBox(extent, MBoxFit.Fit);
+
+            // Dodatkowe wycentrowanie — gdy ZoomToBox zawiedzie przy nietypowym aspect ratio.
+            var (cx, cy) = SphericalMercator.FromLonLat(19.2, 52.1);
+            var resolution = Math.Max(extent.Width / Math.Max(width, 1), extent.Height / Math.Max(height, 1)) * 1.08;
+            if (resolution is <= 0 or double.NaN or double.PositiveInfinity)
+                resolution = 2200;
+            navigator.CenterOnAndZoomTo(new MPoint(cx, cy), resolution);
+
+            MapControl.Refresh();
+            _fittedPoland = true;
         }
         catch
         {
-            // Ignoruj — viewport ustawi się przy pierwszym renderze.
+            // Viewport ustawi się przy kolejnym SizeChanged / Loaded.
         }
     }
 

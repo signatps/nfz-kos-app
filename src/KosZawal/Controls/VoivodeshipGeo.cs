@@ -28,12 +28,15 @@ internal static class VoivodeshipGeo
         var factory = GeometryFactory.Default;
         var extent = PolandExtent();
         // Cztery prostokąty wokół Polski zamiast jednej dziurawej geometrii.
+        // Wąski kołnierz (~600 km) — szeroka maska (4e6 m) rozciągała extent warstwy
+        // daleko na północ i przy nieudanym ZoomToBox potrafiła „uciekać” w kierunku Arktyki.
+        const double pad = 600_000;
         var pads = new[]
         {
-            Rect(factory, extent.MinX - 4_000_000, extent.MinY - 4_000_000, extent.MaxX + 4_000_000, extent.MinY),
-            Rect(factory, extent.MinX - 4_000_000, extent.MaxY, extent.MaxX + 4_000_000, extent.MaxY + 4_000_000),
-            Rect(factory, extent.MinX - 4_000_000, extent.MinY, extent.MinX, extent.MaxY),
-            Rect(factory, extent.MaxX, extent.MinY, extent.MaxX + 4_000_000, extent.MaxY),
+            Rect(factory, extent.MinX - pad, extent.MinY - pad, extent.MaxX + pad, extent.MinY),
+            Rect(factory, extent.MinX - pad, extent.MaxY, extent.MaxX + pad, extent.MaxY + pad),
+            Rect(factory, extent.MinX - pad, extent.MinY, extent.MinX, extent.MaxY),
+            Rect(factory, extent.MaxX, extent.MinY, extent.MaxX + pad, extent.MaxY),
         };
         var mask = factory.CreateMultiPolygon(pads);
         var feature = new GeometryFeature(mask);
@@ -197,7 +200,9 @@ internal static class VoivodeshipGeo
 
     private static bool TryLocate(HospitalPin pin, out double lon, out double lat)
     {
-        if (pin.Latitude is double pinLat && pin.Longitude is double pinLon && pin.Quality == "nominatim")
+        // Używaj zapisanych współrzędnych niezależnie od jakości (nominatim/miasto/adres).
+        if (pin.Latitude is double pinLat && pin.Longitude is double pinLon
+            && pinLat is >= 48.5 and <= 55.5 && pinLon is >= 13.5 and <= 24.5)
         {
             lon = pinLon;
             lat = pinLat;

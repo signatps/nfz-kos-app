@@ -2,46 +2,46 @@
   {
     "woj": "Dolnośląskie",
     "name": "\"MIEDZIOWE CENTRUM ZDROWIA\" S.A. W LUBINIE",
-    "lat": 50.95055,
-    "lon": 16.30635,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 51.4016,
+    "lon": 16.1835,
+    "quality": "miasto",
+    "label": "Lubin, Polska (miasto z nazwy ośrodka)",
     "hosp": 1391
   },
   {
     "woj": "Dolnośląskie",
     "name": "\"ZESPÓŁ OPIEKI ZDROWOTNEJ\" W KŁODZKU",
-    "lat": 50.95055,
-    "lon": 16.30635,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 50.4166,
+    "lon": 16.6554,
+    "quality": "miasto",
+    "label": "Kłodzko, Polska (miasto z nazwy ośrodka)",
     "hosp": 229
   },
   {
     "woj": "Dolnośląskie",
     "name": "4 WOJSKOWY SZPITAL KLINICZNY Z POLIKLINIKĄ SAMODZIELNY PUBLICZNY ZAKŁAD OPIEKI ZDROWOTNEJ WE WROCŁAWIU",
-    "lat": 50.95055,
-    "lon": 16.30635,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 51.0959,
+    "lon": 17.0115,
+    "quality": "miasto",
+    "label": "Wrocław, Polska (miasto z nazwy ośrodka)",
     "hosp": 204
   },
   {
     "woj": "Dolnośląskie",
     "name": "DOLNOŚLĄSKI SZPITAL SPECJALISTYCZNY IM. T. MARCINIAKA - CENTRUM MEDYCYNY RATUNKOWEJ",
-    "lat": 50.95055,
-    "lon": 16.30635,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 51.0985,
+    "lon": 16.9868,
+    "quality": "adres",
+    "label": "Wrocław, Polska",
     "hosp": 467
   },
   {
     "woj": "Dolnośląskie",
     "name": "SPECJALISTYCZNE CENTRUM MEDYCZNE  IM. ŚW. JANA PAWŁA II SPÓŁKA AKCYJNA",
-    "lat": 50.95055,
-    "lon": 16.30635,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 50.4205,
+    "lon": 16.521,
+    "quality": "adres",
+    "label": "Polanica-Zdrój, Polska",
     "hosp": 197
   },
   {
@@ -56,10 +56,10 @@
   {
     "woj": "Dolnośląskie",
     "name": "UNIWERSYTECKI SZPITAL KLINICZNY IM. JANA MIKULICZA-RADECKIEGO WE WROCŁAWIU",
-    "lat": 50.95055,
-    "lon": 16.30635,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 51.1139,
+    "lon": 17.0235,
+    "quality": "miasto",
+    "label": "Wrocław, Polska (miasto z nazwy ośrodka)",
     "hosp": 497
   },
   {
@@ -101,73 +101,73 @@
   {
     "woj": "Kujawsko-pomorskie",
     "name": "REGIONALNY SZPITAL SPECJALISTYCZNY IM. DR  WŁADYSŁAWA BIEGAŃSKIEGO W GRUDZIĄDZU",
-    "lat": 53.05585,
-    "lon": 18.50445,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 53.4871,
+    "lon": 18.7596,
+    "quality": "miasto",
+    "label": "Grudziądz, Polska",
     "hosp": 527
   },
   {
     "woj": "Kujawsko-pomorskie",
     "name": "SPZOZ 10 WOJSKOWY SZPITAL KLINICZNY Z POLIKLINIKĄ",
-    "lat": 53.05585,
-    "lon": 18.50445,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 53.1275,
+    "lon": 18.039,
+    "quality": "adres",
+    "label": "Bydgoszcz, Polska",
     "hosp": 296
   },
   {
     "woj": "Kujawsko-pomorskie",
     "name": "SPZOZ SPECJALISTYCZNY SZPITAL MIEJSKI IM. M. KOPERNIKA",
-    "lat": 53.05585,
-    "lon": 18.50445,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 53.013,
+    "lon": 18.59,
+    "quality": "adres",
+    "label": "Toruń, Polska",
     "hosp": 473
   },
   {
     "woj": "Kujawsko-pomorskie",
     "name": "SZPITAL KLINICZNY IM. DR. E. WARMIŃSKIEGO POLITECHNIKI BYDGOSKIEJ- SPZOZ W BYDGOSZCZY",
-    "lat": 53.05585,
-    "lon": 18.50445,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 53.1415,
+    "lon": 17.9874,
+    "quality": "miasto",
+    "label": "Bydgoszcz, Polska (miasto z nazwy ośrodka)",
     "hosp": 389
   },
   {
     "woj": "Kujawsko-pomorskie",
     "name": "SZPITAL UNIWERSYTECKI NR 1 IM. DR. ANTONIEGO JURASZA W BYDGOSZCZY",
-    "lat": 53.05585,
-    "lon": 18.50445,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 53.1255,
+    "lon": 18.0024,
+    "quality": "miasto",
+    "label": "Bydgoszcz, Polska (miasto z nazwy ośrodka)",
     "hosp": 361
   },
   {
     "woj": "Kujawsko-pomorskie",
     "name": "SZPITAL UNIWERSYTECKI NR 2 IM. DR JANA BIZIELA W BYDGOSZCZY",
-    "lat": 53.05585,
-    "lon": 18.50445,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 53.1055,
+    "lon": 17.9904,
+    "quality": "miasto",
+    "label": "Bydgoszcz, Polska (miasto z nazwy ośrodka)",
     "hosp": 413
   },
   {
     "woj": "Kujawsko-pomorskie",
     "name": "WOJEWÓDZKI SZPITAL SPECJALISTYCZNY WE WŁOCŁAWKU",
-    "lat": 53.05585,
-    "lon": 18.50445,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 52.6513,
+    "lon": 19.0757,
+    "quality": "adres",
+    "label": "Włocławek, Polska",
     "hosp": 620
   },
   {
     "woj": "Lubelskie",
     "name": "1 WOJSKOWY SZPITAL KLINICZNY  Z POLIKLINIKĄ SAMODZIELNY PUBLICZNY ZAKŁAD OPIEKI ZDROWOTNEJ W LUBLINIE",
-    "lat": 51.2698,
-    "lon": 22.88065,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 51.2545,
+    "lon": 22.5534,
+    "quality": "miasto",
+    "label": "Lublin, Polska (miasto z nazwy ośrodka)",
     "hosp": 538
   },
   {
@@ -191,10 +191,10 @@
   {
     "woj": "Lubelskie",
     "name": "SAMODZIELNY PUBLICZNY SZPITAL WOJEWÓDZKI IM. PAPIEŻA JANA PAWŁA II W ZAMOŚCIU",
-    "lat": 51.2698,
-    "lon": 22.88065,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 50.7141,
+    "lon": 23.2639,
+    "quality": "miasto",
+    "label": "Zamość, Polska",
     "hosp": 615
   },
   {
@@ -218,10 +218,10 @@
   {
     "woj": "Lubelskie",
     "name": "WOJEWÓDZKI SZPITAL SPECJALISTYCZNY IM. STEFANA KARDYNAŁA WYSZYŃSKIEGO SAMODZIELNY PUBLICZNY ZAKŁAD OPIEKI ZDROWOTNEJ W LUBLINIE",
-    "lat": 51.2698,
-    "lon": 22.88065,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 51.2605,
+    "lon": 22.5654,
+    "quality": "miasto",
+    "label": "Lublin, Polska (miasto z nazwy ośrodka)",
     "hosp": 261
   },
   {
@@ -236,28 +236,28 @@
   {
     "woj": "Lubuskie",
     "name": "105 KRESOWY SZPITAL WOJSKOWY Z PRZYCHODNIĄ SAMODZIELNY PUBLICZNY ZAKŁAD OPIEKI ZDROWOTNEJ W ŻARACH",
-    "lat": 52.2436,
-    "lon": 15.4755,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 51.65,
+    "lon": 15.135,
+    "quality": "miasto",
+    "label": "Żary, Polska",
     "hosp": 321
   },
   {
     "woj": "Lubuskie",
     "name": "SZPITAL UNIWERSYTECKI  IMIENIA KAROLA MARCINKOWSKIEGO W ZIELONEJ GÓRZE SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ",
-    "lat": 52.2436,
-    "lon": 15.4755,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 51.9416,
+    "lon": 15.4902,
+    "quality": "adres",
+    "label": "Zielona Góra, Polska",
     "hosp": 534
   },
   {
     "woj": "Lubuskie",
     "name": "WIELOSPECJALISTYCZNY SZPITAL W NOWEJ SOLI",
-    "lat": 52.2436,
-    "lon": 15.4755,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 51.7953,
+    "lon": 15.69,
+    "quality": "miasto",
+    "label": "Nowa Sól, Polska (miasto z nazwy ośrodka)",
     "hosp": 1423
   },
   {
@@ -272,10 +272,10 @@
   {
     "woj": "Łódzkie",
     "name": "AMERICAN HEART OF POLAND S.A.",
-    "lat": 51.6187,
-    "lon": 19.3669,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 51.7607,
+    "lon": 19.448,
+    "quality": "stolica-woj",
+    "label": "Łódź, Polska",
     "hosp": 931
   },
   {
@@ -290,10 +290,10 @@
   {
     "woj": "Łódzkie",
     "name": "SAMODZIELNY PUBLICZNY ZAKŁAD OPIEKI ZDROWOTNEJ MINISTERSTWA SPRAW WEWNĘTRZNYCH I ADMINISTRACJI W ŁODZI",
-    "lat": 51.6187,
-    "lon": 19.3669,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 51.7572,
+    "lon": 19.435,
+    "quality": "miasto",
+    "label": "Łódź, Polska (miasto z nazwy ośrodka)",
     "hosp": 105
   },
   {
@@ -317,10 +317,10 @@
   {
     "woj": "Łódzkie",
     "name": "SP ZOZ UNIWERSYTECKI SZPITAL KLINICZNY NR 2 UNIWERSYTETU MEDYCZNEGO  W ŁODZI",
-    "lat": 51.6187,
-    "lon": 19.3669,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 51.7512,
+    "lon": 19.444,
+    "quality": "miasto",
+    "label": "Łódź, Polska (miasto z nazwy ośrodka)",
     "hosp": 294
   },
   {
@@ -335,10 +335,10 @@
   {
     "woj": "Łódzkie",
     "name": "SZPITAL WOJEWÓDZKI IM. PRYMASA KARDYNAŁA STEFANA WYSZYŃSKIEGO W SIERADZU",
-    "lat": 51.6187,
-    "lon": 19.3669,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 51.6061,
+    "lon": 18.7402,
+    "quality": "miasto",
+    "label": "Sieradz, Polska",
     "hosp": 402
   },
   {
@@ -353,46 +353,46 @@
   {
     "woj": "Łódzkie",
     "name": "WOJEWÓDZKI SPECJALISTYCZNY SZPITAL IM. DR  WŁ. BIEGAŃSKIEGO",
-    "lat": 51.6187,
-    "lon": 19.3669,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 51.767,
+    "lon": 19.452,
+    "quality": "adres",
+    "label": "Łódź, Polska",
     "hosp": 319
   },
   {
     "woj": "Łódzkie",
     "name": "WOJEWÓDZKIE WIELOSPECJALISTYCZNE CENTRUM ONKOLOGII I TRAUMATOLOGII IM. M. KOPERNIKA W ŁODZI",
-    "lat": 51.6187,
-    "lon": 19.3669,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 51.7772,
+    "lon": 19.477,
+    "quality": "miasto",
+    "label": "Łódź, Polska (miasto z nazwy ośrodka)",
     "hosp": 547
   },
   {
     "woj": "Małopolskie",
     "name": "G.V.M. CARINT SPÓŁKA Z OGRANICZONA ODPOWIEDZIALNOŚCIĄ",
-    "lat": 49.8495,
-    "lon": 20.25205,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 49.622,
+    "lon": 20.7333,
+    "quality": "adres",
+    "label": "Nowy Sącz, Polska",
     "hosp": 403
   },
   {
     "woj": "Małopolskie",
     "name": "INTERCARD SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ",
-    "lat": 49.8495,
-    "lon": 20.25205,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 50.0752,
+    "lon": 19.957,
+    "quality": "adres",
+    "label": "Kraków, Polska",
     "hosp": 659
   },
   {
     "woj": "Małopolskie",
     "name": "KRAKOWSKI SZPITAL SPECJALISTYCZNY IM. ŚW. JANA PAWŁA II",
-    "lat": 49.8495,
-    "lon": 20.25205,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 50.0587,
+    "lon": 19.942,
+    "quality": "miasto",
+    "label": "Krakow, Polska (miasto z nazwy ośrodka)",
     "hosp": 937
   },
   {
@@ -416,10 +416,10 @@
   {
     "woj": "Małopolskie",
     "name": "SPECJALISTYCZNY SZPITAL IM. E. SZCZEKLIKA W TARNOWIE",
-    "lat": 49.8495,
-    "lon": 20.25205,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 50.0301,
+    "lon": 20.9618,
+    "quality": "miasto",
+    "label": "Tarnów, Polska (miasto z nazwy ośrodka)",
     "hosp": 520
   },
   {
@@ -434,10 +434,10 @@
   {
     "woj": "Mazowieckie",
     "name": "AMERICAN HEART OF POLAND S.A.",
-    "lat": 52.24745,
-    "lon": 21.1938,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 52.2312,
+    "lon": 21.0042,
+    "quality": "stolica-woj",
+    "label": "Warszawa, Polska",
     "hosp": 327
   },
   {
@@ -470,28 +470,28 @@
   {
     "woj": "Mazowieckie",
     "name": "MAZOWIECKI SZPITAL WOJEWÓDZKI IM. ŚW. JANA PAWŁA II W SIEDLCACH  SP. Z O.O.",
-    "lat": 52.24745,
-    "lon": 21.1938,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 52.1807,
+    "lon": 22.2961,
+    "quality": "miasto",
+    "label": "Siedlce, Polska",
     "hosp": 477
   },
   {
     "woj": "Mazowieckie",
     "name": "MEDICOVER SP. Z O. O.",
-    "lat": 52.24745,
-    "lon": 21.1938,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 52.2375,
+    "lon": 21.012,
+    "quality": "adres",
+    "label": "Warszawa, Polska",
     "hosp": 302
   },
   {
     "woj": "Mazowieckie",
     "name": "NARODOWY INSTYTUT KARDIOLOGII STEFANA KARDYNAŁA WYSZYŃSKIEGO - PAŃSTWOWY INSTYTUT BADAWCZY",
-    "lat": 52.24745,
-    "lon": 21.1938,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 52.155,
+    "lon": 21.029,
+    "quality": "adres",
+    "label": "Warszawa, Polska",
     "hosp": 194
   },
   {
@@ -506,10 +506,10 @@
   {
     "woj": "Mazowieckie",
     "name": "SAMODZIELNY PUBLICZNY SPECJALISTYCZNY SZPITAL ZACHODNI IM.ŚW. JANA PAWŁA II",
-    "lat": 52.24745,
-    "lon": 21.1938,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 52.1655,
+    "lon": 20.792,
+    "quality": "adres",
+    "label": "Pruszków, Polska",
     "hosp": 907
   },
   {
@@ -524,19 +524,19 @@
   {
     "woj": "Mazowieckie",
     "name": "SPECJALISTYCZNY SZPITAL WOJEWÓDZKI W CIECHANOWIE",
-    "lat": 52.24745,
-    "lon": 21.1938,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 52.8914,
+    "lon": 20.5989,
+    "quality": "miasto",
+    "label": "Ciechanów, Polska (miasto z nazwy ośrodka)",
     "hosp": 377
   },
   {
     "woj": "Mazowieckie",
     "name": "SZPITAL BIELAŃSKI IM.KS.JERZEGO POPIEŁUSZKI SAMODZIELNY PUBLICZNY ZAKŁAD OPIEKI ZDROWOTNEJ",
-    "lat": 52.24745,
-    "lon": 21.1938,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 52.276,
+    "lon": 20.968,
+    "quality": "adres",
+    "label": "Warszawa, Polska",
     "hosp": 261
   },
   {
@@ -569,28 +569,28 @@
   {
     "woj": "Mazowieckie",
     "name": "WOJSKOWY INSTYTUT MEDYCZNY - PAŃSTWOWY INSTYTUT BADAWCZY",
-    "lat": 52.24745,
-    "lon": 21.1938,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 52.2505,
+    "lon": 20.96,
+    "quality": "adres",
+    "label": "Warszawa, Polska",
     "hosp": 929
   },
   {
     "woj": "Opolskie",
     "name": "AMERICAN HEART OF POLAND SPÓŁKA AKCYJNA",
-    "lat": 50.58355,
-    "lon": 17.80165,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 50.6601,
+    "lon": 17.9133,
+    "quality": "stolica-woj",
+    "label": "Opole, Polska",
     "hosp": 638
   },
   {
     "woj": "Opolskie",
     "name": "SCANMED SPÓŁKA AKCYJNA",
-    "lat": 50.58355,
-    "lon": 17.80165,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 50.6841,
+    "lon": 17.9113,
+    "quality": "adres",
+    "label": "Opole, Polska",
     "hosp": 303
   },
   {
@@ -605,55 +605,55 @@
   {
     "woj": "Podkarpackie",
     "name": "AMERICAN HEART OF POLAND SPÓŁKA AKCYJNA",
-    "lat": 49.91125,
-    "lon": 22.34505,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 50.0262,
+    "lon": 21.9911,
+    "quality": "stolica-woj",
+    "label": "Rzeszów, Polska",
     "hosp": 428
   },
   {
     "woj": "Podkarpackie",
     "name": "CENTRUM KARDIOLOGII INWAZYJNEJ, ELEKTROTERAPII I ANGIOLOGII W KROŚNIE",
-    "lat": 49.91125,
-    "lon": 22.34505,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 49.7021,
+    "lon": 21.7643,
+    "quality": "miasto",
+    "label": "Krosno, Polska",
     "hosp": 486
   },
   {
     "woj": "Podkarpackie",
     "name": "KLINICZNY SZPITAL WOJEWÓDZKI IM. ŚW. JADWIGI KRÓLOWEJ W RZESZOWIE",
-    "lat": 49.91125,
-    "lon": 22.34505,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 50.0572,
+    "lon": 21.9871,
+    "quality": "miasto",
+    "label": "Rzeszów, Polska (miasto z nazwy ośrodka)",
     "hosp": 570
   },
   {
     "woj": "Podkarpackie",
     "name": "PODKARPACKIE CENTRUM INTERWENCJI SERCOWO-NACZYNIOWYCH NZOZ W SANOKU",
-    "lat": 49.91125,
-    "lon": 22.34505,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 49.5415,
+    "lon": 22.201,
+    "quality": "miasto",
+    "label": "Sanok, Polska",
     "hosp": 363
   },
   {
     "woj": "Podkarpackie",
     "name": "SAMODZIELNY PUBLICZNY ZAKŁAD OPIEKI ZDROWOTNEJ MINISTERSTWA SPRAW WEWNĘTRZNYCH I ADMINISTRACJI W RZESZOWIE",
-    "lat": 49.91125,
-    "lon": 22.34505,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 50.0592,
+    "lon": 21.9721,
+    "quality": "miasto",
+    "label": "Rzeszów, Polska (miasto z nazwy ośrodka)",
     "hosp": 591
   },
   {
     "woj": "Podkarpackie",
     "name": "SAMODZIELNY PUBLICZNY ZESPÓŁ ZAKŁADÓW OPIEKI ZDROWOTNEJ POWIATOWY SZPITAL SPECJALISTYCZNY W STALOWEJ WOLI",
-    "lat": 49.91125,
-    "lon": 22.34505,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 50.5901,
+    "lon": 22.0534,
+    "quality": "miasto",
+    "label": "Stalowa Wola, Polska",
     "hosp": 327
   },
   {
@@ -668,73 +668,73 @@
   {
     "woj": "Podlaskie",
     "name": "POLSKO-AMERYKAŃSKIE KLINIKI SERCA PODLASKIE CENTRUM SERCOWO-NACZYNIOWE",
-    "lat": 53.34515,
-    "lon": 22.76965,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 53.131,
+    "lon": 23.1848,
+    "quality": "adres",
+    "label": "Białystok, Polska",
     "hosp": 371
   },
   {
     "woj": "Podlaskie",
     "name": "SAMODZIELNY PUBLICZNY ZAKŁAD OPIEKI ZDROWOTNEJ MINISTERSTWA SPRAW WEWNĘTRZNYCH I ADMINISTRACJI W BIAŁYMSTOKU IM. MARIANA ZYNDRAMA-KOŚCIAŁKOWSKIEGO",
-    "lat": 53.34515,
-    "lon": 22.76965,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 53.131,
+    "lon": 23.1508,
+    "quality": "adres",
+    "label": "Białystok, Polska",
     "hosp": 21
   },
   {
     "woj": "Podlaskie",
     "name": "SP ZOZ WOJEWÓDZKI SZPITAL ZESPOLONY IM. J. ŚNIADECKIEGO",
-    "lat": 53.34515,
-    "lon": 22.76965,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 53.126,
+    "lon": 23.13,
+    "quality": "adres",
+    "label": "Białystok, Polska",
     "hosp": 313
   },
   {
     "woj": "Podlaskie",
     "name": "SZPITAL OGÓLNY IM. DR WITOLDA GINELA W GRAJEWIE",
-    "lat": 53.34515,
-    "lon": 22.76965,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 53.6353,
+    "lon": 22.4463,
+    "quality": "miasto",
+    "label": "Grajewo, Polska (miasto z nazwy ośrodka)",
     "hosp": 95
   },
   {
     "woj": "Podlaskie",
     "name": "SZPITAL WOJEWÓDZKI IM.KARDYNAŁA STEFANA WYSZYŃSKIEGO",
-    "lat": 53.34515,
-    "lon": 22.76965,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 53.1826,
+    "lon": 22.0493,
+    "quality": "adres",
+    "label": "Łomża, Polska",
     "hosp": 265
   },
   {
     "woj": "Podlaskie",
     "name": "UNIWERSYTECKI SZPITAL KLINICZNY W BIAŁYMSTOKU",
-    "lat": 53.34515,
-    "lon": 22.76965,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 53.1285,
+    "lon": 23.1418,
+    "quality": "miasto",
+    "label": "Białystok, Polska (miasto z nazwy ośrodka)",
     "hosp": 499
   },
   {
     "woj": "Pomorskie",
     "name": "AMERICAN HEART OF POLAND SPÓŁKA AKCYJNA",
-    "lat": 54.1637,
-    "lon": 18.1739,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 54.337,
+    "lon": 18.6386,
+    "quality": "stolica-woj",
+    "label": "Gdańsk, Polska",
     "hosp": 486
   },
   {
     "woj": "Pomorskie",
     "name": "COPERNICUS PODMIOT LECZNICZY SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ",
-    "lat": 54.1637,
-    "lon": 18.1739,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 54.3625,
+    "lon": 18.6386,
+    "quality": "adres",
+    "label": "Gdańsk, Polska",
     "hosp": 457
   },
   {
@@ -767,46 +767,46 @@
   {
     "woj": "Pomorskie",
     "name": "WOJEWÓDZKI SZPITAL SPECJALISTYCZNY IM. JANUSZA KORCZAKA W SŁUPSKU SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ",
-    "lat": 54.1637,
-    "lon": 18.1739,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 54.4801,
+    "lon": 17.0225,
+    "quality": "miasto",
+    "label": "Słupsk, Polska (miasto z nazwy ośrodka)",
     "hosp": 380
   },
   {
     "woj": "Śląskie",
     "name": "AMERICAN HEART OF POLAND SPÓŁKA AKCYJNA",
-    "lat": 50.2467,
-    "lon": 19.0045,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 50.2499,
+    "lon": 19.0158,
+    "quality": "stolica-woj",
+    "label": "Katowice, Polska",
     "hosp": 1570
   },
   {
     "woj": "Śląskie",
     "name": "GÓRNOŚLĄSKIE CENTRUM MEDYCZNE IM. PROF. LESZKA GIECA ŚLĄSKIEGO UNIWERSYTETU MEDYCZNEGO W KATOWICACH",
-    "lat": 50.2467,
-    "lon": 19.0045,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 50.2559,
+    "lon": 19.0418,
+    "quality": "miasto",
+    "label": "Katowice, Polska",
     "hosp": 1522
   },
   {
     "woj": "Śląskie",
     "name": "ICZ HEALTHCARE SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ",
-    "lat": 50.2467,
-    "lon": 19.0045,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 50.2769,
+    "lon": 19.0198,
+    "quality": "adres",
+    "label": "Katowice, Polska",
     "hosp": 357
   },
   {
     "woj": "Śląskie",
     "name": "SAMODZIELNY PUBLICZNY ZAKŁAD OPIEKI ZDROWOTNEJ WOJEWÓDZKI SZPITAL SPECJALISTYCZNY NR 3 W RYBNIKU",
-    "lat": 50.2467,
-    "lon": 19.0045,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 50.1157,
+    "lon": 18.5383,
+    "quality": "miasto",
+    "label": "Rybnik, Polska",
     "hosp": 449
   },
   {
@@ -821,10 +821,10 @@
   {
     "woj": "Śląskie",
     "name": "SCANMED SPÓŁKA AKCYJNA",
-    "lat": 50.2467,
-    "lon": 19.0045,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 50.8208,
+    "lon": 19.1103,
+    "quality": "adres",
+    "label": "Częstochowa, Polska",
     "hosp": 1672
   },
   {
@@ -839,46 +839,46 @@
   {
     "woj": "Śląskie",
     "name": "ŚLĄSKIE CENTRUM CHORÓB SERCA W ZABRZU",
-    "lat": 50.2467,
-    "lon": 19.0045,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 50.3089,
+    "lon": 18.8037,
+    "quality": "miasto",
+    "label": "Zabrze, Polska (miasto z nazwy ośrodka)",
     "hosp": 491
   },
   {
     "woj": "Śląskie",
     "name": "WOJEWÓDZKI SZPITAL SPECJALISTYCZNY IM. N.M.P.",
-    "lat": 50.2467,
-    "lon": 19.0045,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 50.8208,
+    "lon": 19.1263,
+    "quality": "adres",
+    "label": "Częstochowa, Polska",
     "hosp": 344
   },
   {
     "woj": "Śląskie",
     "name": "WOJEWÓDZKI SZPITAL SPECJALISTYCZNY NR 2 W JASTRZĘBIU ZDROJU",
-    "lat": 50.2467,
-    "lon": 19.0045,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 49.9553,
+    "lon": 18.5444,
+    "quality": "miasto",
+    "label": "Jastrzębie-Zdrój, Polska (miasto z nazwy ośrodka)",
     "hosp": 387
   },
   {
     "woj": "Śląskie",
     "name": "WOJEWÓDZKI SZPITAL SPECJALISTYCZNY NR 4 W BYTOMIU",
-    "lat": 50.2467,
-    "lon": 19.0045,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 50.346,
+    "lon": 18.894,
+    "quality": "miasto",
+    "label": "Bytom, Polska (miasto z nazwy ośrodka)",
     "hosp": 274
   },
   {
     "woj": "Śląskie",
     "name": "WOJEWÓDZKI SZPITAL SPECJALISTYCZNY NR 5 IM. ŚW. BARBARY W SOSNOWCU",
-    "lat": 50.2467,
-    "lon": 19.0045,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 50.2788,
+    "lon": 19.1,
+    "quality": "miasto",
+    "label": "Sosnowiec, Polska",
     "hosp": 745
   },
   {
@@ -893,19 +893,19 @@
   {
     "woj": "Świętokrzyskie",
     "name": "ZESPÓŁ OPIEKI ZDROWOTNEJ W KOŃSKICH",
-    "lat": 50.7642,
-    "lon": 20.78675,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 51.2097,
+    "lon": 20.4121,
+    "quality": "miasto",
+    "label": "Końskie, Polska (miasto z nazwy ośrodka)",
     "hosp": 362
   },
   {
     "woj": "Warmińsko-mazurskie",
     "name": "SCANMED SPÓŁKA AKCYJNA",
-    "lat": 53.7962,
-    "lon": 20.96685,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 53.7874,
+    "lon": 20.4701,
+    "quality": "adres",
+    "label": "Olsztyn, Polska",
     "hosp": 496
   },
   {
@@ -920,28 +920,28 @@
   {
     "woj": "Warmińsko-mazurskie",
     "name": "WOJEWÓDZKI SZPITAL ZESPOLONY W ELBLĄGU",
-    "lat": 53.7962,
-    "lon": 20.96685,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 54.1641,
+    "lon": 19.4315,
+    "quality": "miasto",
+    "label": "Elbląg, Polska (miasto z nazwy ośrodka)",
     "hosp": 491
   },
   {
     "woj": "Wielkopolskie",
     "name": "\"PLESZEWSKIE CENTRUM MEDYCZNE W PLESZEWIE\" SP. Z O.O.",
-    "lat": 52.3798,
-    "lon": 17.44065,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 51.8904,
+    "lon": 17.7926,
+    "quality": "miasto",
+    "label": "Pleszew, Polska (miasto z nazwy ośrodka)",
     "hosp": 256
   },
   {
     "woj": "Wielkopolskie",
     "name": "CENTRUM MEDYCZNE HCP SP. Z O.O. NZOZ CENTRUM MEDYCZNE HCP LECZNICTWO STACJONARNE",
-    "lat": 52.3798,
-    "lon": 17.44065,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 52.393,
+    "lon": 16.914,
+    "quality": "adres",
+    "label": "Poznań, Polska",
     "hosp": 377
   },
   {
@@ -956,19 +956,19 @@
   {
     "woj": "Wielkopolskie",
     "name": "SZPITAL SPECJALISTYCZNY W PILE IM. STANISŁAWA STASZICA",
-    "lat": 52.3798,
-    "lon": 17.44065,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 53.1469,
+    "lon": 16.726,
+    "quality": "adres",
+    "label": "Piła, Polska",
     "hosp": 552
   },
   {
     "woj": "Wielkopolskie",
     "name": "SZPITAL W PUSZCZYKOWIE IM. PROF. S.T. DĄBROWSKIEGO SPÓŁKA AKCYJNA",
-    "lat": 52.3798,
-    "lon": 17.44065,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 52.2945,
+    "lon": 16.852,
+    "quality": "adres",
+    "label": "Puszczykowo, Polska",
     "hosp": 454
   },
   {
@@ -992,10 +992,10 @@
   {
     "woj": "Wielkopolskie",
     "name": "WIELOSPECJALISTYCZNY SZPITAL MIEJSKI IM.JÓZEFA STRUSIA Z ZAKŁADEM OPIEKUŃCZO-LECZNICZYM. SAMODZIELNY PUBLICZNY ZAKŁAD OPIEKI ZDROWOTNEJ Z SIEDZIBĄ W POZNANIU PRZY UL. SZWAJCARSKIEJ 3",
-    "lat": 52.3798,
-    "lon": 17.44065,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 52.3884,
+    "lon": 16.9462,
+    "quality": "miasto",
+    "label": "Poznan, Polska (miasto z nazwy ośrodka)",
     "hosp": 592
   },
   {
@@ -1019,28 +1019,28 @@
   {
     "woj": "Wielkopolskie",
     "name": "WOJEWÓDZKI SZPITAL ZESPOLONY IM. LUDWIKA PERZYNY W KALISZU",
-    "lat": 52.3798,
-    "lon": 17.44065,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 51.743,
+    "lon": 18.115,
+    "quality": "miasto",
+    "label": "Kalisz, Polska (miasto z nazwy ośrodka)",
     "hosp": 367
   },
   {
     "woj": "Wielkopolskie",
     "name": "ZESPÓŁ ZAKŁADÓW OPIEKI ZDROWOTNEJ OSTRÓW WIELKOPOLSKI",
-    "lat": 52.3798,
-    "lon": 17.44065,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 51.651,
+    "lon": 17.7884,
+    "quality": "miasto",
+    "label": "Ostrów Wielkopolski, Polska (miasto z nazwy ośrodka)",
     "hosp": 405
   },
   {
     "woj": "Zachodniopomorskie",
     "name": "AMERICAN HEART OF POLAND SPÓŁKA AKCYJNA",
-    "lat": 53.5972,
-    "lon": 15.5525,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 53.4135,
+    "lon": 14.5448,
+    "quality": "stolica-woj",
+    "label": "Szczecin, Polska",
     "hosp": 322
   },
   {
@@ -1064,10 +1064,10 @@
   {
     "woj": "Zachodniopomorskie",
     "name": "UNIWERSYTECKI SZPITAL KLINICZNY NR 2 PUM W SZCZECINIE",
-    "lat": 53.5972,
-    "lon": 15.5525,
-    "quality": "srodek-wojewodztwa",
-    "label": "",
+    "lat": 53.4265,
+    "lon": 14.5768,
+    "quality": "miasto",
+    "label": "Szczecin, Polska (miasto z nazwy ośrodka)",
     "hosp": 573
   }
 ]

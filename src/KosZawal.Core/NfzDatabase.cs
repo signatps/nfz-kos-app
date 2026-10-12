@@ -99,8 +99,7 @@ public sealed class NfzDatabase : IDisposable
             ON CONFLICT(wojewodztwo, swiadczeniodawca) DO UPDATE SET
                 lat = excluded.lat,
                 lon = excluded.lon,
-                jakosc = excluded.jakosc
-            WHERE geokody.jakosc != 'nominatim' OR excluded.jakosc = 'nominatim';
+                jakosc = excluded.jakosc;
             """;
         foreach (var hit in hits)
         {
