@@ -2,6 +2,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Mapsui;
 using Mapsui.Layers;
+using Mapsui.Limiting;
+using Mapsui.Manipulations;
 using Mapsui.Tiling;
 
 namespace KosZawal.Controls;
@@ -9,8 +11,8 @@ namespace KosZawal.Controls;
 public enum MapDisplayMode
 {
     OsmHospitals,
-    Administrative,
     Leaders,
+    Administrative,
 }
 
 public partial class KosMapView : UserControl
@@ -24,6 +26,10 @@ public partial class KosMapView : UserControl
     public static readonly StyledProperty<string> HoverTextProperty =
         AvaloniaProperty.Register<KosMapView, string>(nameof(HoverText), "");
 
+    public static readonly StyledProperty<string?> SelectedHospitalKeyProperty =
+        AvaloniaProperty.Register<KosMapView, string?>(nameof(SelectedHospitalKey));
+
+    private MemoryLayer? _mask;
     private MemoryLayer? _borders;
     private MemoryLayer? _points;
     private MapDisplayMode _mode = MapDisplayMode.OsmHospitals;
@@ -53,6 +59,12 @@ public partial class KosMapView : UserControl
         set => SetValue(HoverTextProperty, value);
     }
 
+    public string? SelectedHospitalKey
+    {
+        get => GetValue(SelectedHospitalKeyProperty);
+        set => SetValue(SelectedHospitalKeyProperty, value);
+    }
+
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
@@ -76,11 +88,11 @@ public partial class KosMapView : UserControl
         HintText.Text = mode switch
         {
             MapDisplayMode.Administrative =>
-                "Widok administracyjny: granice województw oraz stolice i główne miasta. Bez pinezek szpitali.",
+                "Widok administracyjny Polski: województwa oraz stolice i główne miasta.",
             MapDisplayMode.Leaders =>
-                "Liderzy województw: w każdym województwie ośrodek KOS z największą liczbą hospitalizacji zawałowych w wybranym roku i typie.",
+                "Tylko liderzy województw (korona): ośrodek KOS z największą liczbą hospitalizacji. Kliknij punkt.",
             _ =>
-                "Kafelki OpenStreetMap. Punkty: ośrodki KOS-zawał (złoty = położenie przybliżone).",
+                "Wszystkie ośrodki KOS na mapie Polski. Korona = lider województwa, kropka = pozostałe. Kliknij punkt.",
         };
         RefreshLayers();
         FitPoland();
@@ -89,8 +101,8 @@ public partial class KosMapView : UserControl
     private void StyleModeButtons()
     {
         SetButtonStyle(OsmButton, _mode == MapDisplayMode.OsmHospitals);
-        SetButtonStyle(AdminButton, _mode == MapDisplayMode.Administrative);
         SetButtonStyle(LeadersButton, _mode == MapDisplayMode.Leaders);
+        SetButtonStyle(AdminButton, _mode == MapDisplayMode.Administrative);
     }
 
     private static void SetButtonStyle(Button button, bool active)
@@ -105,15 +117,22 @@ public partial class KosMapView : UserControl
             return;
         _ready = true;
 
-        var map = new Map { CRS = "EPSG:3857" };
+        var map = new Map { CRS = "EPSG:3857", BackColor = Mapsui.Styles.Color.FromArgb(255, 243, 240, 232) };
         map.Layers.Add(OpenStreetMap.CreateTileLayer("KosZawal/1.0 (https://github.com/signatps/nfz-kos-app)"));
 
+        _mask = new MemoryLayer("Maska") { Style = null, Features = [VoivodeshipGeo.NeighborMaskFeature()] };
         _borders = new MemoryLayer("Województwa") { Style = null };
         _points = new MemoryLayer("Punkty") { Style = null };
+        map.Layers.Add(_mask);
         map.Layers.Add(_borders);
         map.Layers.Add(_points);
 
+        var extent = VoivodeshipGeo.PolandExtent();
+        map.Navigator.OverridePanBounds = extent;
+        map.Navigator.Limiter = new ViewportLimiterKeepWithinExtent();
+        map.Tapped += OnMapTapped;
         map.Info += OnMapInfo;
+
         MapControl.Map = map;
         StyleModeButtons();
         FitPoland();
@@ -133,11 +152,11 @@ public partial class KosMapView : UserControl
                 break;
             case MapDisplayMode.Leaders:
                 _borders.Features = VoivodeshipGeo.BorderFeatures(Regions, fillByShare: true).ToList();
-                _points.Features = VoivodeshipGeo.LeaderFeatures(Pins).ToList();
+                _points.Features = VoivodeshipGeo.HospitalFeatures(Pins, leadersOnly: true).ToList();
                 break;
             default:
                 _borders.Features = VoivodeshipGeo.BorderFeatures(Regions, fillByShare: false).ToList();
-                _points.Features = VoivodeshipGeo.HospitalFeatures(Pins).ToList();
+                _points.Features = VoivodeshipGeo.HospitalFeatures(Pins, leadersOnly: false).ToList();
                 break;
         }
 
@@ -154,44 +173,51 @@ public partial class KosMapView : UserControl
         MapControl.Map.Navigator.ZoomToBox(VoivodeshipGeo.PolandExtent());
     }
 
+    private void OnMapTapped(object? sender, MapEventArgs e)
+    {
+        if (e.GestureType is not (GestureType.SingleTap or GestureType.DoubleTap))
+            return;
+
+        var info = e.GetMapInfo([_points!]);
+        if (info.Feature is null)
+            return;
+        if (info.Feature["kind"] is not "hospital")
+            return;
+        if (info.Feature["name"] is string name && info.Feature["woj"] is string woj)
+        {
+            SelectedHospitalKey = woj + "\u001f" + name;
+            e.Handled = true;
+        }
+    }
+
     private void OnMapInfo(object? sender, MapInfoEventArgs e)
     {
         var info = e.GetMapInfo([_borders!, _points!]);
         var feature = info.Feature;
         if (feature is null)
         {
-            HoverText = _mode switch
-            {
-                MapDisplayMode.Administrative => "Najedź na województwo albo miasto.",
-                MapDisplayMode.Leaders => "Najedź na lidera województwa.",
-                _ => "Najedź na ośrodek KOS-zawał.",
-            };
+            HoverText = _mode == MapDisplayMode.Administrative
+                ? "Najedź na województwo albo miasto."
+                : "Najedź na ośrodek albo kliknij, by otworzyć szczegóły.";
             return;
         }
 
-        if (feature["name"] is string name && feature["woj"] is string woj)
+        if (feature["kind"] is "hospital" && feature["name"] is string name && feature["woj"] is string woj)
         {
-            if (feature["leader"] is true)
-            {
-                var hosp = Convert.ToDouble(feature["hosp"] ?? 0);
-                var share = Convert.ToDouble(feature["share"] ?? 0);
-                HoverText = $"Lider {woj}: {name} · {hosp:N0} hospitalizacji · KOS {share:0.0%}";
-                return;
-            }
+            var hosp = Convert.ToDouble(feature["hosp"] ?? 0);
+            var share = Convert.ToDouble(feature["share"] ?? 0);
+            var leader = feature["leader"] is true ? " · lider województwa" : "";
+            var approx = feature["quality"] is string quality && quality != "nominatim"
+                ? " · położenie przybliżone"
+                : "";
+            HoverText = $"{name} · {woj} · {hosp:N0} hosp. · KOS {share:0.0%}{leader}{approx}";
+            return;
+        }
 
-            if (feature["hosp"] is not null)
-            {
-                var hosp = Convert.ToDouble(feature["hosp"]);
-                var share = Convert.ToDouble(feature["share"] ?? 0);
-                var approx = feature["quality"] is string quality && quality != "nominatim"
-                    ? " · położenie przybliżone"
-                    : "";
-                HoverText = $"{name} · {woj} · {hosp:N0} hosp. · KOS {share:0.0%}{approx}";
-                return;
-            }
-
+        if (feature["kind"] is "city" && feature["name"] is string city && feature["woj"] is string cityWoj)
+        {
             var capital = feature["capital"] is true ? "stolica województwa" : "miasto";
-            HoverText = $"{name} · {woj} · {capital}";
+            HoverText = $"{city} · {cityWoj} · {capital}";
             return;
         }
 

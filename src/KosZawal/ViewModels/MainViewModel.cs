@@ -25,6 +25,19 @@ public sealed class MapSideItem
 {
     public required string Title { get; init; }
     public required string Subtitle { get; init; }
+    public required string Key { get; init; }
+    public bool IsLeader { get; init; }
+}
+
+public sealed class HospitalYearRow
+{
+    public required string Year { get; init; }
+    public required string Hospitalizations { get; init; }
+    public required string KosShare { get; init; }
+    public required string Control14 { get; init; }
+    public required string Rehab30 { get; init; }
+    public required string Finish365 { get; init; }
+    public required string Status { get; init; }
 }
 
 public sealed class GridRow
@@ -64,6 +77,7 @@ public partial class MainViewModel : ObservableObject
     public ObservableCollection<RegionRow> RegionRows { get; } = [];
     public ObservableCollection<HospitalPin> Pins { get; } = [];
     public ObservableCollection<MapSideItem> MapSideList { get; } = [];
+    public ObservableCollection<HospitalYearRow> SelectedHospitalYears { get; } = [];
     public string[] InfarctTypes { get; } = ReportCatalog.InfarctTypes;
     public string[] ExportChoices { get; } =
     [
@@ -84,8 +98,25 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string status = "";
     [ObservableProperty] private string tableCaption = "";
     [ObservableProperty] private string mapHover = "Najedź na województwo albo ośrodek.";
+    [ObservableProperty] private string? selectedHospitalKey;
+    [ObservableProperty] private HospitalDetail? selectedHospital;
     [ObservableProperty] private bool isBusy;
     [ObservableProperty] private string[] headers = [];
+
+    public bool HasSelectedHospital => SelectedHospital is not null;
+    public string SelectedHospitalTitle => SelectedHospital is null
+        ? "Wybierz ośrodek na mapie"
+        : SelectedHospital.Name;
+    public string SelectedHospitalSubtitle => SelectedHospital is null
+        ? "Kliknij punkt (korona = lider województwa)."
+        : $"{SelectedHospital.Voivodeship}"
+          + (SelectedHospital.IsLeader ? " · lider województwa" : "")
+          + (SelectedHospital.Quality == "nominatim" ? "" : " · położenie przybliżone");
+    public string SelectedHospitalSummary => SelectedHospital is null
+        ? ""
+        : $"Typ: {SelectedHospital.InfarctType}. Lata w bazie: {SelectedHospital.Years.First().Year}–{SelectedHospital.Years.Last().Year}.";
+    public IReadOnlyList<HospitalYearSeries> SelectedHospitalSeries => SelectedHospital?.Years ?? [];
+    public IReadOnlyList<MonthPoint> SelectedHospitalMonthly => SelectedHospital?.Monthly ?? [];
 
     public string ShareText => Kpi is null ? "—" : Kpi.NationalShare.ToString("0.0%", _culture);
     public string CentersText => Kpi is null ? "—" : Kpi.Centers.ToString("N0", _culture);
@@ -265,15 +296,91 @@ public partial class MainViewModel : ObservableObject
             .Select(group => group.OrderByDescending(pin => pin.Hospitalizations).ThenBy(pin => pin.Name).First())
             .OrderByDescending(pin => pin.Hospitalizations)
             .ToList();
-        foreach (var leader in leaders)
+        var leaderKeys = leaders
+            .Select(pin => pin.Voivodeship + "\u001f" + pin.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
+        foreach (var pin in Pins.OrderByDescending(item => item.Hospitalizations))
         {
+            var key = pin.Voivodeship + "\u001f" + pin.Name;
+            var isLeader = leaderKeys.Contains(key);
             MapSideList.Add(new MapSideItem
             {
-                Title = $"{leader.Voivodeship}: {leader.Name}",
-                Subtitle = $"{leader.Hospitalizations.ToString("N0", _culture)} hospitalizacji · KOS {(leader.KosShare ?? 0).ToString("0.0%", _culture)}"
-                    + (leader.Quality == "nominatim" ? "" : " · położenie przybliżone"),
+                Key = key,
+                IsLeader = isLeader,
+                Title = (isLeader ? "Lider · " : "") + pin.Name,
+                Subtitle = $"{pin.Voivodeship} · {pin.Hospitalizations.ToString("N0", _culture)} hosp. · KOS {(pin.KosShare ?? 0).ToString("0.0%", _culture)}"
+                    + (pin.Quality == "nominatim" ? "" : " · przybliżone"),
             });
         }
+
+        if (!string.IsNullOrEmpty(SelectedHospitalKey))
+            LoadSelectedHospital();
+    }
+
+    partial void OnSelectedHospitalKeyChanged(string? value) => LoadSelectedHospital();
+
+    private void LoadSelectedHospital()
+    {
+        SelectedHospitalYears.Clear();
+        if (string.IsNullOrEmpty(SelectedHospitalKey))
+        {
+            SelectedHospital = null;
+            NotifyHospital();
+            return;
+        }
+
+        var parts = SelectedHospitalKey.Split('\u001f');
+        if (parts.Length != 2)
+        {
+            SelectedHospital = null;
+            NotifyHospital();
+            return;
+        }
+
+        SelectedHospital = _database.HospitalDetail(parts[0], parts[1], InfarctType, Year);
+        if (SelectedHospital is not null)
+        {
+            foreach (var year in SelectedHospital.Years)
+            {
+                SelectedHospitalYears.Add(new HospitalYearRow
+                {
+                    Year = year.Year.ToString(_culture),
+                    Hospitalizations = year.Hospitalizations.ToString("N0", _culture),
+                    KosShare = year.KosShare?.ToString("0.0%", _culture) ?? "—",
+                    Control14 = year.Control14?.ToString("0.0%", _culture) ?? "—",
+                    Rehab30 = year.Rehab30?.ToString("0.0%", _culture) ?? "—",
+                    Finish365 = year.Finish365?.ToString("0.0%", _culture) ?? "—",
+                    Status = year.IsKos ? "KOS" : "poza KOS",
+                });
+            }
+        }
+
+        NotifyHospital();
+    }
+
+    private void NotifyHospital()
+    {
+        OnPropertyChanged(nameof(HasSelectedHospital));
+        OnPropertyChanged(nameof(SelectedHospitalTitle));
+        OnPropertyChanged(nameof(SelectedHospitalSubtitle));
+        OnPropertyChanged(nameof(SelectedHospitalSummary));
+        OnPropertyChanged(nameof(SelectedHospitalSeries));
+        OnPropertyChanged(nameof(SelectedHospitalMonthly));
+    }
+
+    [RelayCommand]
+    private void SelectMapItem(MapSideItem? item)
+    {
+        if (item is null)
+            return;
+        SelectedHospitalKey = item.Key;
+    }
+
+    [RelayCommand]
+    private void ClearHospital()
+    {
+        SelectedHospitalKey = null;
     }
 
     private string BuildMethodology()

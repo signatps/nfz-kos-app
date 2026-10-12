@@ -44,4 +44,24 @@ public sealed record HospitalPin(
     double? Longitude,
     string Quality);
 
+public sealed record HospitalYearSeries(
+    int Year,
+    double Hospitalizations,
+    bool IsKos,
+    double? KosShare,
+    double? Control14,
+    double? Rehab30,
+    double? Finish365);
+
+public sealed record HospitalDetail(
+    string Voivodeship,
+    string Name,
+    string InfarctType,
+    bool IsLeader,
+    string Quality,
+    double? Latitude,
+    double? Longitude,
+    IReadOnlyList<HospitalYearSeries> Years,
+    IReadOnlyList<MonthPoint> Monthly);
+
 public sealed record GeoHit(string Voivodeship, string Name, double Latitude, double Longitude, string Quality);

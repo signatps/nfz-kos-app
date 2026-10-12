@@ -415,6 +415,110 @@ public sealed class NfzDatabase : IDisposable
         return pins;
     }
 
+    public HospitalDetail? HospitalDetail(string voivodeship, string name, string infarctType, int leaderYear)
+    {
+        var years = new List<HospitalYearSeries>();
+        using (var command = _connection.CreateCommand())
+        {
+            command.CommandText = """
+                SELECT p.rok,
+                       COALESCE(p.liczba_hospitalizacji, 0),
+                       COALESCE(p.czy_kos, 'NIE'),
+                       k.proc_kos,
+                       k.kontrola_14,
+                       k.rehab_30,
+                       k.zakon_365
+                FROM placowki p
+                LEFT JOIN kos k
+                  ON k.rok = p.rok
+                 AND k.wojewodztwo = p.wojewodztwo
+                 AND k.swiadczeniodawca = p.swiadczeniodawca
+                 AND k.typ_zawalu = p.typ_zawalu
+                WHERE p.wojewodztwo = $woj
+                  AND p.swiadczeniodawca = $name
+                  AND p.typ_zawalu = $type
+                ORDER BY p.rok;
+                """;
+            command.Parameters.AddWithValue("$woj", voivodeship);
+            command.Parameters.AddWithValue("$name", name);
+            command.Parameters.AddWithValue("$type", infarctType);
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                years.Add(new HospitalYearSeries(
+                    reader.GetInt32(0),
+                    reader.GetDouble(1),
+                    string.Equals(reader.GetString(2), "TAK", StringComparison.OrdinalIgnoreCase),
+                    reader.IsDBNull(3) ? null : reader.GetDouble(3),
+                    reader.IsDBNull(4) ? null : reader.GetDouble(4),
+                    reader.IsDBNull(5) ? null : reader.GetDouble(5),
+                    reader.IsDBNull(6) ? null : reader.GetDouble(6)));
+            }
+        }
+
+        if (years.Count == 0)
+            return null;
+
+        var monthly = new List<MonthPoint>();
+        using (var command = _connection.CreateCommand())
+        {
+            command.CommandText = """
+                SELECT data,
+                       COALESCE(wartosc, 0),
+                       COALESCE(proc_kos, 0)
+                FROM trendy
+                WHERE wojewodztwo = $woj
+                  AND swiadczeniodawca = $name
+                  AND typ_zawalu = $type
+                  AND atrybut = $attr
+                ORDER BY data;
+                """;
+            command.Parameters.AddWithValue("$woj", voivodeship);
+            command.Parameters.AddWithValue("$name", name);
+            command.Parameters.AddWithValue("$type", infarctType);
+            command.Parameters.AddWithValue("$attr", ReportCatalog.HospitalizationsAttribute);
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                var hosp = reader.GetDouble(1);
+                var share = reader.GetDouble(2);
+                monthly.Add(new MonthPoint(reader.GetString(0), hosp, hosp * share, share));
+            }
+        }
+
+        string quality = "";
+        double? lat = null;
+        double? lon = null;
+        using (var command = _connection.CreateCommand())
+        {
+            command.CommandText = """
+                SELECT lat, lon, COALESCE(jakosc, '')
+                FROM geokody
+                WHERE wojewodztwo = $woj AND swiadczeniodawca = $name
+                LIMIT 1;
+                """;
+            command.Parameters.AddWithValue("$woj", voivodeship);
+            command.Parameters.AddWithValue("$name", name);
+            using var reader = command.ExecuteReader();
+            if (reader.Read())
+            {
+                lat = reader.IsDBNull(0) ? null : reader.GetDouble(0);
+                lon = reader.IsDBNull(1) ? null : reader.GetDouble(1);
+                quality = reader.IsDBNull(2) ? "" : reader.GetString(2);
+            }
+        }
+
+        var leaders = Hospitals(leaderYear, infarctType)
+            .GroupBy(pin => pin.Voivodeship, StringComparer.CurrentCultureIgnoreCase)
+            .Select(group => group.OrderByDescending(pin => pin.Hospitalizations).ThenBy(pin => pin.Name).First())
+            .ToList();
+        var isLeader = leaders.Any(pin =>
+            string.Equals(pin.Voivodeship, voivodeship, StringComparison.CurrentCultureIgnoreCase)
+            && string.Equals(pin.Name, name, StringComparison.Ordinal));
+
+        return new HospitalDetail(voivodeship, name, infarctType, isLeader, quality, lat, lon, years, monthly);
+    }
+
     public void Dispose() => _connection.Dispose();
 
     private List<object?[]> QueryOffset(

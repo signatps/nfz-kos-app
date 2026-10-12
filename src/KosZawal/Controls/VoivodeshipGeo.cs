@@ -6,6 +6,7 @@ using Mapsui.Nts;
 using Mapsui.Projections;
 using Mapsui.Styles;
 using NetTopologySuite.Geometries;
+using NetTopologySuite.Operation.Union;
 using Color = Mapsui.Styles.Color;
 
 namespace KosZawal.Controls;
@@ -13,8 +14,38 @@ namespace KosZawal.Controls;
 internal static class VoivodeshipGeo
 {
     private static IReadOnlyList<VoivodeshipPolygon>? _polygons;
+    private static string? _crownSource;
 
     public static IReadOnlyList<VoivodeshipPolygon> Polygons => _polygons ??= Load();
+
+    public static IFeature NeighborMaskFeature()
+    {
+        var geometries = Polygons.Select(polygon => polygon.Geometry).Where(geometry => !geometry.IsEmpty).ToArray();
+        Geometry poland = geometries.Length == 0
+            ? GeometryFactory.Default.CreateEmpty(Dimension.Surface)
+            : UnaryUnionOp.Union(geometries);
+
+        var factory = GeometryFactory.Default;
+        var (minX, minY) = SphericalMercator.FromLonLat(-20, 30);
+        var (maxX, maxY) = SphericalMercator.FromLonLat(50, 70);
+        var world = factory.CreatePolygon(
+        [
+            new Coordinate(minX, minY),
+            new Coordinate(maxX, minY),
+            new Coordinate(maxX, maxY),
+            new Coordinate(minX, maxY),
+            new Coordinate(minX, minY),
+        ]);
+
+        var mask = poland.IsEmpty ? world : world.Difference(poland);
+        var feature = new GeometryFeature(mask);
+        feature.Styles.Add(new VectorStyle
+        {
+            Fill = new Brush(new Color(243, 240, 232)),
+            Outline = null,
+        });
+        return feature;
+    }
 
     public static IEnumerable<IFeature> BorderFeatures(IReadOnlyList<VoivodeshipStat>? regions, bool fillByShare)
     {
@@ -26,16 +57,17 @@ internal static class VoivodeshipGeo
             shares.TryGetValue(polygon.Name, out var share);
             var fill = fillByShare
                 ? ColorFor(share)
-                : new Color(14, 110, 106, 28);
+                : new Color(14, 110, 106, 36);
             var feature = new GeometryFeature(polygon.Geometry)
             {
                 ["name"] = polygon.Name,
                 ["share"] = share,
+                ["kind"] = "region",
             };
             feature.Styles.Add(new VectorStyle
             {
                 Fill = new Brush(fill),
-                Outline = new Pen(new Color(255, 255, 255, 220), fillByShare ? 1.6 : 2.2),
+                Outline = new Pen(new Color(255, 255, 255, 230), fillByShare ? 1.6 : 2.0),
             });
             yield return feature;
         }
@@ -51,10 +83,11 @@ internal static class VoivodeshipGeo
                 ["name"] = city.Name,
                 ["woj"] = city.Voivodeship,
                 ["capital"] = city.IsCapital,
+                ["kind"] = "city",
             };
             feature.Styles.Add(new SymbolStyle
             {
-                SymbolScale = city.IsCapital ? 0.55 : 0.38,
+                SymbolScale = city.IsCapital ? 0.5 : 0.35,
                 Fill = new Brush(city.IsCapital ? new Color(196, 71, 79) : new Color(22, 50, 79)),
                 Outline = new Pen(Color.White, 1.4),
             });
@@ -71,46 +104,27 @@ internal static class VoivodeshipGeo
         }
     }
 
-    public static IEnumerable<IFeature> HospitalFeatures(IReadOnlyList<HospitalPin>? pins)
+    public static IEnumerable<IFeature> HospitalFeatures(IReadOnlyList<HospitalPin>? pins, bool leadersOnly)
     {
-        foreach (var pin in pins ?? [])
-        {
-            if (!TryLocate(pin, out var lon, out var lat))
-                continue;
-            var (x, y) = SphericalMercator.FromLonLat(lon, lat);
-            var color = pin.Quality == "nominatim"
-                ? (pin.KosShare ?? 0) >= 0.5 ? new Color(196, 71, 79) : new Color(14, 110, 106)
-                : new Color(138, 106, 47);
-            var feature = new GeometryFeature(new Point(x, y))
-            {
-                ["name"] = pin.Name,
-                ["woj"] = pin.Voivodeship,
-                ["hosp"] = pin.Hospitalizations,
-                ["share"] = pin.KosShare ?? 0,
-                ["quality"] = pin.Quality,
-            };
-            feature.Styles.Add(new SymbolStyle
-            {
-                SymbolScale = 0.45 + Math.Min(0.35, Math.Sqrt(Math.Max(pin.Hospitalizations, 0)) / 80),
-                Fill = new Brush(color),
-                Outline = new Pen(Color.White, 1.3),
-            });
-            yield return feature;
-        }
-    }
-
-    public static IEnumerable<IFeature> LeaderFeatures(IReadOnlyList<HospitalPin>? pins)
-    {
-        var leaders = (pins ?? [])
+        var list = pins ?? [];
+        var leaderKeys = list
             .GroupBy(pin => pin.Voivodeship, StringComparer.CurrentCultureIgnoreCase)
             .Select(group => group.OrderByDescending(pin => pin.Hospitalizations).ThenBy(pin => pin.Name).First())
-            .OrderByDescending(pin => pin.Hospitalizations)
-            .ToList();
+            .Select(pin => Key(pin.Voivodeship, pin.Name))
+            .ToHashSet(StringComparer.Ordinal);
 
-        foreach (var pin in leaders)
+        var ordered = list
+            .OrderBy(pin => leaderKeys.Contains(Key(pin.Voivodeship, pin.Name)) ? 1 : 0)
+            .ThenBy(pin => pin.Hospitalizations);
+
+        foreach (var pin in ordered)
         {
+            var isLeader = leaderKeys.Contains(Key(pin.Voivodeship, pin.Name));
+            if (leadersOnly && !isLeader)
+                continue;
             if (!TryLocate(pin, out var lon, out var lat))
                 continue;
+
             var (x, y) = SphericalMercator.FromLonLat(lon, lat);
             var feature = new GeometryFeature(new Point(x, y))
             {
@@ -119,39 +133,79 @@ internal static class VoivodeshipGeo
                 ["hosp"] = pin.Hospitalizations,
                 ["share"] = pin.KosShare ?? 0,
                 ["quality"] = pin.Quality,
-                ["leader"] = true,
+                ["leader"] = isLeader,
+                ["kind"] = "hospital",
             };
-            feature.Styles.Add(new SymbolStyle
+
+            if (isLeader)
             {
-                SymbolScale = 0.72,
-                Fill = new Brush(new Color(196, 71, 79)),
-                Outline = new Pen(Color.White, 2),
-            });
-            feature.Styles.Add(new LabelStyle
+                feature.Styles.Add(new SymbolStyle
+                {
+                    SymbolScale = 0.55,
+                    Offset = new Offset(0, -10),
+                    Fill = new Brush
+                    {
+                        Image = new Image { Source = CrownSource() },
+                    },
+                });
+                feature.Styles.Add(new LabelStyle
+                {
+                    Text = ShortName(pin.Name),
+                    ForeColor = new Color(18, 36, 51),
+                    BackColor = new Brush(new Color(243, 240, 232, 235)),
+                    Font = new Font { FontFamily = "Inter", Size = 11 },
+                    Offset = new Offset(0, -28),
+                    CollisionDetection = true,
+                });
+            }
+            else
             {
-                Text = $"{pin.Voivodeship}\n{ShortName(pin.Name)} · {pin.Hospitalizations:N0}",
-                ForeColor = new Color(18, 36, 51),
-                BackColor = new Brush(new Color(243, 240, 232, 230)),
-                Font = new Font { FontFamily = "Inter", Size = 12 },
-                Offset = new Offset(0, -22),
-                CollisionDetection = true,
-            });
+                var color = pin.Quality == "nominatim"
+                    ? (pin.KosShare ?? 0) >= 0.5 ? new Color(196, 71, 79) : new Color(14, 110, 106)
+                    : new Color(138, 106, 47);
+                feature.Styles.Add(new SymbolStyle
+                {
+                    SymbolScale = 0.42 + Math.Min(0.28, Math.Sqrt(Math.Max(pin.Hospitalizations, 0)) / 90),
+                    Fill = new Brush(color),
+                    Outline = new Pen(Color.White, 1.4),
+                });
+            }
+
             yield return feature;
         }
-    }
-
-    private static string ShortName(string name)
-    {
-        if (name.Length <= 42)
-            return name;
-        return name[..39] + "…";
     }
 
     public static MRect PolandExtent()
     {
-        var (minX, minY) = SphericalMercator.FromLonLat(14.0, 48.9);
-        var (maxX, maxY) = SphericalMercator.FromLonLat(24.3, 55.1);
+        var (minX, minY) = SphericalMercator.FromLonLat(14.05, 48.95);
+        var (maxX, maxY) = SphericalMercator.FromLonLat(24.25, 55.05);
         return new MRect(minX, minY, maxX, maxY);
+    }
+
+    private static string Key(string woj, string name) => woj + "\u001f" + name;
+
+    private static string ShortName(string name) =>
+        name.Length <= 36 ? name : name[..33] + "…";
+
+    private static string CrownSource()
+    {
+        if (_crownSource is not null)
+            return _crownSource;
+
+        var directory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "KosZawal");
+        Directory.CreateDirectory(directory);
+        var path = Path.Combine(directory, "crown.png");
+        if (!File.Exists(path))
+        {
+            using var stream = AssetLoader.Open(new Uri("avares://KosZawal/Assets/crown.png"));
+            using var file = File.Create(path);
+            stream.CopyTo(file);
+        }
+
+        _crownSource = new Uri(path).AbsoluteUri;
+        return _crownSource;
     }
 
     private static bool TryLocate(HospitalPin pin, out double lon, out double lat)
@@ -185,7 +239,7 @@ internal static class VoivodeshipGeo
             (int)(213 + (14 - 213) * t),
             (int)(228 + (110 - 228) * t),
             (int)(234 + (106 - 234) * t),
-            170);
+            150);
     }
 
     private static IReadOnlyList<VoivodeshipPolygon> Load()
