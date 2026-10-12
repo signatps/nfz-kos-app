@@ -16,7 +16,7 @@ Dla wybranego roku (domyślnie 2025) i typu zawału:
 
 Osobno widać udział liczony tylko wśród ośrodków, które program realizują.
 
-Mapa korzysta z kafelków OpenStreetMap (wymaga sieci), przyciętych do granic Polski. Tryby: wszystkie ośrodki KOS (liderzy z koroną, pozostałe zwykłym punktem), tylko liderzy oraz widok administracyjny (województwa + główne miasta). Kliknięcie ośrodka pokazuje historię hospitalizacji i realizacji KOS w latach oraz wykres miesięczny. Złoty punkt oznacza położenie przybliżone.
+Mapa korzysta z kafelków OpenStreetMap (wymaga sieci). Widok jest ograniczony do Polski; liderzy województw mają złoty trójkąt, pozostałe ośrodki zwykły punkt. Jest też widok administracyjny (województwa + główne miasta). Kliknięcie ośrodka pokazuje historię hospitalizacji i realizacji KOS. Złoty punkt (nie trójkąt) oznacza położenie przybliżone. Przy awarii log trafia do `%LOCALAPPDATA%\KosZawal\crash.log`.
 
 Komunikat CeZ/NFZ o „40% w 2024” dotyczy udziału wśród przypadków **bez zgonów wewnątrzszpitalnych**. Wskaźnik aplikacji z raportu Power BI liczy wszystkie hospitalizacje i dla 2024 daje ok. 34,5% (typ łącznie).
 

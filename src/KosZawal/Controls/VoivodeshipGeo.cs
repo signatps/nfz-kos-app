@@ -6,9 +6,6 @@ using Mapsui.Nts;
 using Mapsui.Projections;
 using Mapsui.Styles;
 using NetTopologySuite.Geometries;
-using NetTopologySuite.Geometries.Utilities;
-using NetTopologySuite.Operation.Overlay;
-using NetTopologySuite.Operation.OverlayNG;
 using Color = Mapsui.Styles.Color;
 
 namespace KosZawal.Controls;
@@ -16,62 +13,40 @@ namespace KosZawal.Controls;
 internal static class VoivodeshipGeo
 {
     private static IReadOnlyList<VoivodeshipPolygon>? _polygons;
-    private static string? _crownSource;
     private static IFeature? _maskFeature;
 
     public static IReadOnlyList<VoivodeshipPolygon> Polygons => _polygons ??= Load();
 
+    /// <summary>
+    /// Prosta maska poza prostokątem Polski — bez OverlayNG/Difference na skomplikowanych granicach,
+    /// które na Windows potrafiły wywalić proces bez komunikatu (Skia/native).
+    /// </summary>
     public static IFeature NeighborMaskFeature() => _maskFeature ??= BuildNeighborMask();
 
     private static IFeature BuildNeighborMask()
     {
         var factory = GeometryFactory.Default;
-        var style = new VectorStyle
+        var extent = PolandExtent();
+        // Cztery prostokąty wokół Polski zamiast jednej dziurawej geometrii.
+        var pads = new[]
+        {
+            Rect(factory, extent.MinX - 4_000_000, extent.MinY - 4_000_000, extent.MaxX + 4_000_000, extent.MinY),
+            Rect(factory, extent.MinX - 4_000_000, extent.MaxY, extent.MaxX + 4_000_000, extent.MaxY + 4_000_000),
+            Rect(factory, extent.MinX - 4_000_000, extent.MinY, extent.MinX, extent.MaxY),
+            Rect(factory, extent.MaxX, extent.MinY, extent.MaxX + 4_000_000, extent.MaxY),
+        };
+        var mask = factory.CreateMultiPolygon(pads);
+        var feature = new GeometryFeature(mask);
+        feature.Styles.Add(new VectorStyle
         {
             Fill = new Brush(new Color(243, 240, 232)),
             Outline = null,
-        };
-
-        try
-        {
-            var mask = CutPolandFromWorld(factory);
-            var feature = new GeometryFeature(mask);
-            feature.Styles.Add(style);
-            return feature;
-        }
-        catch
-        {
-            var feature = new GeometryFeature(RectangularCollarMask(factory));
-            feature.Styles.Add(style);
-            return feature;
-        }
+        });
+        return feature;
     }
 
-    private static Geometry CutPolandFromWorld(GeometryFactory factory)
-    {
-        var world = WorldPolygon(factory);
-        // Union+Difference pada na uproszczonych granicach („side location conflict”).
-        // Odejmowanie województw po kolei przez OverlayNG jest stabilne.
-        Geometry mask = world;
-        foreach (var polygon in Polygons)
-        {
-            var piece = GeometryFixer.Fix(polygon.Geometry);
-            if (piece.IsEmpty)
-                continue;
-            piece = piece.Buffer(0);
-            if (piece.IsEmpty)
-                continue;
-            mask = OverlayNGRobust.Overlay(mask, piece, SpatialFunction.Difference);
-        }
-
-        return mask.IsEmpty ? RectangularCollarMask(factory) : mask;
-    }
-
-    private static Geometry WorldPolygon(GeometryFactory factory)
-    {
-        var (minX, minY) = SphericalMercator.FromLonLat(-20, 30);
-        var (maxX, maxY) = SphericalMercator.FromLonLat(50, 70);
-        return factory.CreatePolygon(
+    private static Polygon Rect(GeometryFactory factory, double minX, double minY, double maxX, double maxY) =>
+        factory.CreatePolygon(
         [
             new Coordinate(minX, minY),
             new Coordinate(maxX, minY),
@@ -79,30 +54,6 @@ internal static class VoivodeshipGeo
             new Coordinate(minX, maxY),
             new Coordinate(minX, minY),
         ]);
-    }
-
-    /// <summary>Fallback: zasłania obszar poza prostokątem Polski.</summary>
-    private static Geometry RectangularCollarMask(GeometryFactory factory)
-    {
-        var extent = PolandExtent();
-        var world = WorldPolygon(factory);
-        var polandBox = factory.CreatePolygon(
-        [
-            new Coordinate(extent.MinX, extent.MinY),
-            new Coordinate(extent.MaxX, extent.MinY),
-            new Coordinate(extent.MaxX, extent.MaxY),
-            new Coordinate(extent.MinX, extent.MaxY),
-            new Coordinate(extent.MinX, extent.MinY),
-        ]);
-        try
-        {
-            return OverlayNGRobust.Overlay(world, polandBox, SpatialFunction.Difference);
-        }
-        catch
-        {
-            return world;
-        }
-    }
 
     public static IEnumerable<IFeature> BorderFeatures(IReadOnlyList<VoivodeshipStat>? regions, bool fillByShare)
     {
@@ -153,9 +104,9 @@ internal static class VoivodeshipGeo
                 Text = city.Name,
                 ForeColor = new Color(18, 36, 51),
                 BackColor = new Brush(new Color(243, 240, 232, 210)),
-                Font = new Font { FontFamily = "Inter", Size = city.IsCapital ? 13 : 11 },
+                Font = new Font { FontFamily = "Segoe UI", Size = city.IsCapital ? 13 : 11 },
                 Offset = new Offset(0, city.IsCapital ? -18 : -14),
-                CollisionDetection = true,
+                CollisionDetection = false,
             });
             yield return feature;
         }
@@ -196,23 +147,22 @@ internal static class VoivodeshipGeo
 
             if (isLeader)
             {
+                // Korona jako trójkąt + etykieta — bez PNG/Image (to wywalało Skia w single-file).
                 feature.Styles.Add(new SymbolStyle
                 {
-                    SymbolScale = 0.55,
-                    Offset = new Offset(0, -10),
-                    Fill = new Brush
-                    {
-                        Image = new Image { Source = CrownSource() },
-                    },
+                    SymbolType = SymbolType.Triangle,
+                    SymbolScale = 0.85,
+                    Fill = new Brush(new Color(212, 160, 48)),
+                    Outline = new Pen(Color.White, 2),
                 });
                 feature.Styles.Add(new LabelStyle
                 {
-                    Text = ShortName(pin.Name),
+                    Text = "Lider · " + ShortName(pin.Name),
                     ForeColor = new Color(18, 36, 51),
                     BackColor = new Brush(new Color(243, 240, 232, 235)),
-                    Font = new Font { FontFamily = "Inter", Size = 11 },
-                    Offset = new Offset(0, -28),
-                    CollisionDetection = true,
+                    Font = new Font { FontFamily = "Segoe UI", Size = 11 },
+                    Offset = new Offset(0, -22),
+                    CollisionDetection = false,
                 });
             }
             else
@@ -222,6 +172,7 @@ internal static class VoivodeshipGeo
                     : new Color(138, 106, 47);
                 feature.Styles.Add(new SymbolStyle
                 {
+                    SymbolType = SymbolType.Ellipse,
                     SymbolScale = 0.42 + Math.Min(0.28, Math.Sqrt(Math.Max(pin.Hospitalizations, 0)) / 90),
                     Fill = new Brush(color),
                     Outline = new Pen(Color.White, 1.4),
@@ -243,27 +194,6 @@ internal static class VoivodeshipGeo
 
     private static string ShortName(string name) =>
         name.Length <= 36 ? name : name[..33] + "…";
-
-    private static string CrownSource()
-    {
-        if (_crownSource is not null)
-            return _crownSource;
-
-        var directory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "KosZawal");
-        Directory.CreateDirectory(directory);
-        var path = Path.Combine(directory, "crown.png");
-        if (!File.Exists(path))
-        {
-            using var stream = AssetLoader.Open(new Uri("avares://KosZawal/Assets/crown.png"));
-            using var file = File.Create(path);
-            stream.CopyTo(file);
-        }
-
-        _crownSource = new Uri(path).AbsoluteUri;
-        return _crownSource;
-    }
 
     private static bool TryLocate(HospitalPin pin, out double lon, out double lat)
     {
