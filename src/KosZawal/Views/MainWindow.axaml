@@ -252,14 +252,14 @@
                   <StackPanel Spacing="6">
                     <TextBlock Classes="card-kicker" Text="LISTA OŚRODKÓW" />
                     <TextBlock Classes="muted" TextWrapping="Wrap"
-                               Text="Korona na mapie / wpis „Lider” = największa liczba hospitalizacji w województwie. Złoty punkt = położenie przybliżone." />
+                               Text="Wpis „Lider” / złoty trójkąt na mapie = największa liczba hospitalizacji w województwie. Złoty punkt = położenie przybliżone." />
                     <ItemsControl ItemsSource="{Binding MapSideList}">
                       <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:MapSideItem">
                           <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
                                   Margin="0,0,0,6"
-                                  Command="{Binding #Root.((vm:MainViewModel)DataContext).SelectMapItemCommand}"
-                                  CommandParameter="{Binding}">
+                                  Tag="{Binding Key}"
+                                  Click="SelectHospitalFromList">
                             <StackPanel>
                               <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontWeight="SemiBold" />
                               <TextBlock Classes="muted" Text="{Binding Subtitle}" TextWrapping="Wrap" />

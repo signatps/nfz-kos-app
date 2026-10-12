@@ -48,6 +48,12 @@ public partial class MainWindow : Window
         }
     }
 
+    private void SelectHospitalFromList(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string key } && DataContext is MainViewModel model)
+            model.SelectedHospitalKey = key;
+    }
+
     private async void SaveCsv(object? sender, Avalonia.Interactivity.RoutedEventArgs e) =>
         await SaveAsync("csv");
 
