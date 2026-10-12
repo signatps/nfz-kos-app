@@ -38,7 +38,17 @@ public partial class KosMapView : UserControl
     public KosMapView()
     {
         InitializeComponent();
-        AttachedToVisualTree += (_, _) => EnsureMap();
+        // Nie buduj mapy przy starcie aplikacji (splash) — dopiero gdy zakładka staje się widoczna.
+        IsVisibleChanged += (_, _) =>
+        {
+            if (IsVisible)
+                EnsureMap();
+        };
+        AttachedToVisualTree += (_, _) =>
+        {
+            if (IsVisible)
+                EnsureMap();
+        };
     }
 
     public IReadOnlyList<VoivodeshipStat>? Regions
@@ -117,26 +127,48 @@ public partial class KosMapView : UserControl
             return;
         _ready = true;
 
-        var map = new Map { CRS = "EPSG:3857", BackColor = Mapsui.Styles.Color.FromArgb(255, 243, 240, 232) };
-        map.Layers.Add(OpenStreetMap.CreateTileLayer("KosZawal/1.0 (https://github.com/signatps/nfz-kos-app)"));
+        try
+        {
+            var map = new Map { CRS = "EPSG:3857", BackColor = Mapsui.Styles.Color.FromArgb(255, 243, 240, 232) };
+            map.Layers.Add(OpenStreetMap.CreateTileLayer("KosZawal/1.0 (https://github.com/signatps/nfz-kos-app)"));
 
-        _mask = new MemoryLayer("Maska") { Style = null, Features = [VoivodeshipGeo.NeighborMaskFeature()] };
-        _borders = new MemoryLayer("Województwa") { Style = null };
-        _points = new MemoryLayer("Punkty") { Style = null };
-        map.Layers.Add(_mask);
-        map.Layers.Add(_borders);
-        map.Layers.Add(_points);
+            IFeature? maskFeature = null;
+            try
+            {
+                maskFeature = VoivodeshipGeo.NeighborMaskFeature();
+            }
+            catch
+            {
+                // Mapa działa bez maski krajów ościennych.
+            }
 
-        var extent = VoivodeshipGeo.PolandExtent();
-        map.Navigator.OverridePanBounds = extent;
-        map.Navigator.Limiter = new ViewportLimiterKeepWithinExtent();
-        map.Tapped += OnMapTapped;
-        map.Info += OnMapInfo;
+            _mask = new MemoryLayer("Maska")
+            {
+                Style = null,
+                Features = maskFeature is null ? [] : [maskFeature],
+            };
+            _borders = new MemoryLayer("Województwa") { Style = null };
+            _points = new MemoryLayer("Punkty") { Style = null };
+            map.Layers.Add(_mask);
+            map.Layers.Add(_borders);
+            map.Layers.Add(_points);
 
-        MapControl.Map = map;
-        StyleModeButtons();
-        FitPoland();
-        RefreshLayers();
+            var extent = VoivodeshipGeo.PolandExtent();
+            map.Navigator.OverridePanBounds = extent;
+            map.Navigator.Limiter = new ViewportLimiterKeepWithinExtent();
+            map.Tapped += OnMapTapped;
+            map.Info += OnMapInfo;
+
+            MapControl.Map = map;
+            StyleModeButtons();
+            FitPoland();
+            RefreshLayers();
+        }
+        catch (Exception ex)
+        {
+            HoverText = "Mapa nie mogła się załadować: " + ex.Message;
+            _ready = false;
+        }
     }
 
     private void RefreshLayers()

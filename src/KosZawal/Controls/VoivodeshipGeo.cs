@@ -6,7 +6,9 @@ using Mapsui.Nts;
 using Mapsui.Projections;
 using Mapsui.Styles;
 using NetTopologySuite.Geometries;
-using NetTopologySuite.Operation.Union;
+using NetTopologySuite.Geometries.Utilities;
+using NetTopologySuite.Operation.Overlay;
+using NetTopologySuite.Operation.OverlayNG;
 using Color = Mapsui.Styles.Color;
 
 namespace KosZawal.Controls;
@@ -15,20 +17,61 @@ internal static class VoivodeshipGeo
 {
     private static IReadOnlyList<VoivodeshipPolygon>? _polygons;
     private static string? _crownSource;
+    private static IFeature? _maskFeature;
 
     public static IReadOnlyList<VoivodeshipPolygon> Polygons => _polygons ??= Load();
 
-    public static IFeature NeighborMaskFeature()
-    {
-        var geometries = Polygons.Select(polygon => polygon.Geometry).Where(geometry => !geometry.IsEmpty).ToArray();
-        Geometry poland = geometries.Length == 0
-            ? GeometryFactory.Default.CreateEmpty(Dimension.Surface)
-            : UnaryUnionOp.Union(geometries);
+    public static IFeature NeighborMaskFeature() => _maskFeature ??= BuildNeighborMask();
 
+    private static IFeature BuildNeighborMask()
+    {
         var factory = GeometryFactory.Default;
+        var style = new VectorStyle
+        {
+            Fill = new Brush(new Color(243, 240, 232)),
+            Outline = null,
+        };
+
+        try
+        {
+            var mask = CutPolandFromWorld(factory);
+            var feature = new GeometryFeature(mask);
+            feature.Styles.Add(style);
+            return feature;
+        }
+        catch
+        {
+            var feature = new GeometryFeature(RectangularCollarMask(factory));
+            feature.Styles.Add(style);
+            return feature;
+        }
+    }
+
+    private static Geometry CutPolandFromWorld(GeometryFactory factory)
+    {
+        var world = WorldPolygon(factory);
+        // Union+Difference pada na uproszczonych granicach („side location conflict”).
+        // Odejmowanie województw po kolei przez OverlayNG jest stabilne.
+        Geometry mask = world;
+        foreach (var polygon in Polygons)
+        {
+            var piece = GeometryFixer.Fix(polygon.Geometry);
+            if (piece.IsEmpty)
+                continue;
+            piece = piece.Buffer(0);
+            if (piece.IsEmpty)
+                continue;
+            mask = OverlayNGRobust.Overlay(mask, piece, SpatialFunction.Difference);
+        }
+
+        return mask.IsEmpty ? RectangularCollarMask(factory) : mask;
+    }
+
+    private static Geometry WorldPolygon(GeometryFactory factory)
+    {
         var (minX, minY) = SphericalMercator.FromLonLat(-20, 30);
         var (maxX, maxY) = SphericalMercator.FromLonLat(50, 70);
-        var world = factory.CreatePolygon(
+        return factory.CreatePolygon(
         [
             new Coordinate(minX, minY),
             new Coordinate(maxX, minY),
@@ -36,15 +79,29 @@ internal static class VoivodeshipGeo
             new Coordinate(minX, maxY),
             new Coordinate(minX, minY),
         ]);
+    }
 
-        var mask = poland.IsEmpty ? world : world.Difference(poland);
-        var feature = new GeometryFeature(mask);
-        feature.Styles.Add(new VectorStyle
+    /// <summary>Fallback: zasłania obszar poza prostokątem Polski.</summary>
+    private static Geometry RectangularCollarMask(GeometryFactory factory)
+    {
+        var extent = PolandExtent();
+        var world = WorldPolygon(factory);
+        var polandBox = factory.CreatePolygon(
+        [
+            new Coordinate(extent.MinX, extent.MinY),
+            new Coordinate(extent.MaxX, extent.MinY),
+            new Coordinate(extent.MaxX, extent.MaxY),
+            new Coordinate(extent.MinX, extent.MaxY),
+            new Coordinate(extent.MinX, extent.MinY),
+        ]);
+        try
         {
-            Fill = new Brush(new Color(243, 240, 232)),
-            Outline = null,
-        });
-        return feature;
+            return OverlayNGRobust.Overlay(world, polandBox, SpatialFunction.Difference);
+        }
+        catch
+        {
+            return world;
+        }
     }
 
     public static IEnumerable<IFeature> BorderFeatures(IReadOnlyList<VoivodeshipStat>? regions, bool fillByShare)
