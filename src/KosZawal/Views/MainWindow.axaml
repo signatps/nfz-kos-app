@@ -1,0 +1,244 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:KosZawal.Controls"
+        xmlns:vm="using:KosZawal"
+        x:Class="KosZawal.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Width="1380" Height="880"
+        MinWidth="1100" MinHeight="700"
+        WindowStartupLocation="CenterScreen"
+        Background="#F3F0E8"
+        FontFamily="Inter, Segoe UI, sans-serif"
+        Title="KOS-zawał · dane NFZ">
+  <Grid ColumnDefinitions="112,*">
+    <Border Background="#122433">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Margin="0,18,0,8" HorizontalAlignment="Center">
+          <Border Width="48" Height="48" CornerRadius="16" Background="#0E6E6A">
+            <controls:Pictogram Kind="heart" Width="26" Height="26" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" />
+          </Border>
+          <TextBlock Text="KOS" Foreground="White" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,8,0,0" />
+        </StackPanel>
+        <StackPanel DockPanel.Dock="Bottom" Margin="0,0,0,16">
+          <Button Classes="nav" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsBusy}">
+            <StackPanel Spacing="4">
+              <controls:Pictogram Kind="refresh" Width="22" Height="22" HorizontalAlignment="Center" Foreground="#D7E4EC" />
+              <TextBlock Text="NFZ" FontSize="11" HorizontalAlignment="Center" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
+        <ScrollViewer>
+          <StackPanel>
+            <Button Classes="nav" Classes.active="{Binding Nav[0].IsActive}" Tag="summary" Click="GoNav">
+              <StackPanel Spacing="3">
+                <controls:Pictogram Kind="heart" Width="24" Height="24" HorizontalAlignment="Center" Foreground="#D7E4EC" />
+                <TextBlock Text="Start" FontSize="11" HorizontalAlignment="Center" />
+              </StackPanel>
+            </Button>
+            <Button Classes="nav" Classes.active="{Binding Nav[1].IsActive}" Tag="placowki" Click="GoNav">
+              <StackPanel Spacing="3">
+                <controls:Pictogram Kind="hospital" Width="24" Height="24" HorizontalAlignment="Center" Foreground="#D7E4EC" />
+                <TextBlock Text="Placówki" FontSize="11" HorizontalAlignment="Center" />
+              </StackPanel>
+            </Button>
+            <Button Classes="nav" Classes.active="{Binding Nav[2].IsActive}" Tag="kos" Click="GoNav">
+              <StackPanel Spacing="3">
+                <controls:Pictogram Kind="contract" Width="24" Height="24" HorizontalAlignment="Center" Foreground="#D7E4EC" />
+                <TextBlock Text="KOS" FontSize="11" HorizontalAlignment="Center" />
+              </StackPanel>
+            </Button>
+            <Button Classes="nav" Classes.active="{Binding Nav[3].IsActive}" Tag="trendy" Click="GoNav">
+              <StackPanel Spacing="3">
+                <controls:Pictogram Kind="trend" Width="24" Height="24" HorizontalAlignment="Center" Foreground="#D7E4EC" />
+                <TextBlock Text="Trendy" FontSize="11" HorizontalAlignment="Center" />
+              </StackPanel>
+            </Button>
+            <Button Classes="nav" Classes.active="{Binding Nav[4].IsActive}" Tag="mapa" Click="GoNav">
+              <StackPanel Spacing="3">
+                <controls:Pictogram Kind="map" Width="24" Height="24" HorizontalAlignment="Center" Foreground="#D7E4EC" />
+                <TextBlock Text="Mapa" FontSize="11" HorizontalAlignment="Center" />
+              </StackPanel>
+            </Button>
+            <Button Classes="nav" Classes.active="{Binding Nav[5].IsActive}" Tag="wojewodztwa" Click="GoNav">
+              <StackPanel Spacing="3">
+                <controls:Pictogram Kind="regions" Width="24" Height="24" HorizontalAlignment="Center" Foreground="#D7E4EC" />
+                <TextBlock Text="Woj." FontSize="11" HorizontalAlignment="Center" />
+              </StackPanel>
+            </Button>
+            <Button Classes="nav" Classes.active="{Binding Nav[6].IsActive}" Tag="metodyka" Click="GoNav">
+              <StackPanel Spacing="3">
+                <controls:Pictogram Kind="book" Width="24" Height="24" HorizontalAlignment="Center" Foreground="#D7E4EC" />
+                <TextBlock Text="Metodyka" FontSize="11" HorizontalAlignment="Center" />
+              </StackPanel>
+            </Button>
+            <Button Classes="nav" Classes.active="{Binding Nav[7].IsActive}" Tag="eksport" Click="GoNav">
+              <StackPanel Spacing="3">
+                <controls:Pictogram Kind="export" Width="24" Height="24" HorizontalAlignment="Center" Foreground="#D7E4EC" />
+                <TextBlock Text="Eksport" FontSize="11" HorizontalAlignment="Center" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+        </ScrollViewer>
+      </DockPanel>
+    </Border>
+
+    <DockPanel Grid.Column="1">
+      <Border DockPanel.Dock="Top" Background="#F3F0E8" Padding="22,16,22,8">
+        <Grid ColumnDefinitions="*,Auto,Auto,Auto,220" ColumnSpacing="10">
+          <StackPanel>
+            <TextBlock Classes="h1" Text="Zawał i KOS-zawał" />
+            <TextBlock Classes="muted" Text="{Binding Provenance}" TextWrapping="Wrap" />
+            <TextBlock Classes="muted" Text="{Binding Status}" />
+          </StackPanel>
+          <StackPanel Grid.Column="1" Spacing="4">
+            <TextBlock Classes="muted" Text="Rok" />
+            <ComboBox ItemsSource="{Binding Years}" SelectedItem="{Binding Year}" MinWidth="96" />
+          </StackPanel>
+          <StackPanel Grid.Column="2" Spacing="4">
+            <TextBlock Classes="muted" Text="Typ zawału" />
+            <ComboBox ItemsSource="{Binding InfarctTypes}" SelectedItem="{Binding InfarctType}" MinWidth="230" />
+          </StackPanel>
+          <StackPanel Grid.Column="3" Spacing="4">
+            <TextBlock Classes="muted" Text="Województwo" />
+            <ComboBox ItemsSource="{Binding VoivodeshipOptions}" SelectedItem="{Binding VoivodeshipOption}" MinWidth="180" />
+          </StackPanel>
+          <StackPanel Grid.Column="4" Spacing="4">
+            <TextBlock Classes="muted" Text="Szpital" />
+            <TextBox Text="{Binding SearchText}" Watermark="Szukaj świadczeniodawcy" />
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <ScrollViewer>
+        <Panel Margin="22,8,22,22">
+          <StackPanel Spacing="16" IsVisible="{Binding IsSummary}">
+            <UniformGrid Columns="4" ColumnSpacing="12">
+              <Border Classes="card">
+                <StackPanel Spacing="8">
+                  <TextBlock Classes="card-kicker" Text="1 · ORAZ 5 · KRAJ" />
+                  <controls:Pictogram Kind="heart" Width="28" Height="28" Foreground="#C4474F" />
+                  <TextBlock Text="{Binding ShareText}" FontSize="36" FontWeight="SemiBold" />
+                  <TextBlock Classes="muted" TextWrapping="Wrap" Text="Odsetek hospitalizacji zawałowych objętych KOS-zawał w skali całej Polski." />
+                  <TextBlock Text="{Binding CasesText}" FontWeight="SemiBold" />
+                </StackPanel>
+              </Border>
+              <Border Classes="card">
+                <StackPanel Spacing="8">
+                  <TextBlock Classes="card-kicker" Text="2 · SZPITALE" />
+                  <controls:Pictogram Kind="hospital" Width="28" Height="28" Foreground="#16324F" />
+                  <TextBlock Text="{Binding CentersText}" FontSize="36" FontWeight="SemiBold" />
+                  <TextBlock Classes="muted" TextWrapping="Wrap" Text="Świadczeniodawcy, którzy w wybranym roku sprawozdali hospitalizację w KOS-zawał." />
+                </StackPanel>
+              </Border>
+              <Border Classes="card">
+                <StackPanel Spacing="8">
+                  <TextBlock Classes="card-kicker" Text="3 · WOJEWÓDZTWA" />
+                  <controls:Pictogram Kind="regions" Width="28" Height="28" Foreground="#0E6E6A" />
+                  <TextBlock Text="{Binding RegionsText}" FontSize="36" FontWeight="SemiBold" />
+                  <TextBlock Classes="muted" TextWrapping="Wrap" Text="Województwa, w których jest co najmniej jeden realizator programu." />
+                </StackPanel>
+              </Border>
+              <Border Classes="card">
+                <StackPanel Spacing="8">
+                  <TextBlock Classes="card-kicker" Text="W OŚRODKACH KOS" />
+                  <controls:Pictogram Kind="contract" Width="28" Height="28" Foreground="#16324F" />
+                  <TextBlock Text="{Binding AmongCentersText}" FontSize="36" FontWeight="SemiBold" />
+                  <TextBlock Classes="muted" TextWrapping="Wrap" Text="Ten sam licznik, ale tylko wśród hospitalizacji w ośrodkach, które program realizują." />
+                </StackPanel>
+              </Border>
+            </UniformGrid>
+
+            <Grid ColumnDefinitions="1.1*,0.9*" ColumnSpacing="12">
+              <Border Classes="card">
+                <DockPanel>
+                  <TextBlock DockPanel.Dock="Top" Classes="card-kicker" Text="4 · OŚRODKI WEDŁUG WOJEWÓDZTWA" Margin="0,0,0,12" />
+                  <ScrollViewer MaxHeight="460">
+                    <ItemsControl ItemsSource="{Binding RegionRows}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:RegionRow">
+                          <Grid ColumnDefinitions="168,36,*,64" Margin="0,4" ColumnSpacing="8">
+                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{Binding Centers}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <Border Grid.Column="2" Height="10" CornerRadius="5" Background="#E7E1D6" VerticalAlignment="Center">
+                              <Border Height="10" CornerRadius="5" Background="#0E6E6A" HorizontalAlignment="Left"
+                                      Width="{Binding Bar, Converter={x:Static vm:BarWidthConverter.Instance}}" />
+                            </Border>
+                            <TextBlock Grid.Column="3" Text="{Binding ShareText}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                          </Grid>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </ScrollViewer>
+                </DockPanel>
+              </Border>
+              <Border Grid.Column="1" Classes="card">
+                <DockPanel>
+                  <TextBlock DockPanel.Dock="Top" Classes="card-kicker" Text="UDZIAŁ KOS W CIĄGU ROKU" Margin="0,0,0,8" />
+                  <controls:ShareChart Points="{Binding Monthly}" Height="460" />
+                </DockPanel>
+              </Border>
+            </Grid>
+          </StackPanel>
+
+          <Border Classes="card" IsVisible="{Binding IsTable}" Padding="0">
+            <DockPanel>
+              <DockPanel DockPanel.Dock="Top" Margin="16,14">
+                <CheckBox DockPanel.Dock="Right" Content="Tylko sumy województw" IsChecked="{Binding TrendsAggregateOnly}" IsVisible="{Binding IsTrends}" />
+                <TextBlock Classes="muted" Text="{Binding TableCaption}" VerticalAlignment="Center" />
+              </DockPanel>
+              <DataGrid x:Name="TableGrid" ItemsSource="{Binding Rows}" CanUserSortColumns="True" CanUserResizeColumns="True" />
+            </DockPanel>
+          </Border>
+
+          <Grid ColumnDefinitions="1.4*,0.8*" ColumnSpacing="12" IsVisible="{Binding IsMap}">
+            <Border Classes="card" Padding="8">
+              <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" Margin="10" Classes="muted" Text="{Binding MapHover}" TextWrapping="Wrap" />
+                <controls:PolandMap Regions="{Binding RegionStats}" Pins="{Binding Pins}" HoverText="{Binding MapHover, Mode=TwoWay}" MinHeight="640" />
+              </DockPanel>
+            </Border>
+            <Border Grid.Column="1" Classes="card">
+              <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Classes="card-kicker" Text="OSRODKI KOS-ZAWAŁ" Margin="0,0,0,8" />
+                <TextBlock DockPanel.Dock="Top" Classes="muted" TextWrapping="Wrap" Margin="0,0,0,8"
+                           Text="Kolor morski i koralowy: punkt z geokodowania. Złoty: środek województwa, gdy nie udało się ustalić adresu." />
+                <ScrollViewer>
+                  <ItemsControl ItemsSource="{Binding Pins}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:HospitalPin">
+                        <StackPanel Margin="0,0,0,10">
+                          <TextBlock Text="{Binding Name}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                          <TextBlock Classes="muted" Text="{Binding Voivodeship}" />
+                        </StackPanel>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </ScrollViewer>
+              </DockPanel>
+            </Border>
+          </Grid>
+
+          <Border Classes="card" IsVisible="{Binding IsMethodology}">
+            <ScrollViewer MaxHeight="680">
+              <TextBlock Text="{Binding Methodology}" TextWrapping="Wrap" FontSize="15" LineHeight="24" />
+            </ScrollViewer>
+          </Border>
+
+          <Border Classes="card" IsVisible="{Binding IsExport}" MaxWidth="720" HorizontalAlignment="Left">
+            <StackPanel Spacing="12">
+              <TextBlock Classes="card-kicker" Text="EKSPORT" />
+              <TextBlock TextWrapping="Wrap" Text="Zapisz dowolną tabelę z raportu. CSV otwiera się w polskim Excelu (średnik, UTF-8). XLSX ma nagłówki i format procentów, do 80 tysięcy wierszy." />
+              <TextBlock Classes="muted" Text="Zbiór" />
+              <ComboBox ItemsSource="{Binding ExportChoices}" SelectedItem="{Binding ExportDataset}" />
+              <CheckBox Content="Zastosuj rok, typ, województwo i wyszukiwanie" IsChecked="{Binding ExportUsesFilters}" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Classes="action" Content="Zapisz CSV" Click="SaveCsv" />
+                <Button Classes="quiet" Content="Zapisz XLSX" Click="SaveXlsx" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+        </Panel>
+      </ScrollViewer>
+    </DockPanel>
+  </Grid>
+</Window>

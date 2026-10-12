@@ -1,0 +1,12 @@
+bin/
+obj/
+dist/
+.dotnet/
+agent-tools/
+*.user
+.vs/
+.idea/
+TestResults/
+*.db
+*.db-wal
+*.db-shm

@@ -1,0 +1,94 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="KosZawal.App"
+             RequestedThemeVariant="Light">
+  <Application.Styles>
+    <FluentTheme />
+    <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml" />
+
+    <Style Selector="Button.nav">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="#D7E4EC" />
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="Padding" Value="4,8" />
+      <Setter Property="Margin" Value="10,3" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.nav:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#1B3C55" />
+    </Style>
+    <Style Selector="Button.nav.active">
+      <Setter Property="Background" Value="#0E6E6A" />
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="Button.nav.active:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#0E6E6A" />
+    </Style>
+
+    <Style Selector="Button.action">
+      <Setter Property="Background" Value="#16324F" />
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="14,8" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.action:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#0E6E6A" />
+    </Style>
+    <Style Selector="Button.quiet">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="#16324F" />
+      <Setter Property="BorderBrush" Value="#D5CFC4" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+
+    <Style Selector="TextBlock.h1">
+      <Setter Property="FontSize" Value="28" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="#1A2330" />
+    </Style>
+    <Style Selector="TextBlock.muted">
+      <Setter Property="Foreground" Value="#5C6B78" />
+      <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style Selector="TextBlock.card-kicker">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="#0E6E6A" />
+      <Setter Property="LetterSpacing" Value="0.4" />
+    </Style>
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="White" />
+      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="Padding" Value="18" />
+      <Setter Property="BoxShadow" Value="0 8 24 0 #14000000" />
+    </Style>
+    <Style Selector="ComboBox">
+      <Setter Property="MinHeight" Value="36" />
+      <Setter Property="CornerRadius" Value="8" />
+    </Style>
+    <Style Selector="TextBox">
+      <Setter Property="MinHeight" Value="36" />
+      <Setter Property="CornerRadius" Value="8" />
+    </Style>
+    <Style Selector="DataGrid">
+      <Setter Property="Background" Value="White" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="RowHeight" Value="36" />
+      <Setter Property="GridLinesVisibility" Value="Horizontal" />
+      <Setter Property="HorizontalGridLinesBrush" Value="#E7E1D6" />
+    </Style>
+    <Style Selector="DataGridColumnHeader">
+      <Setter Property="Background" Value="#16324F" />
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Padding" Value="10,8" />
+    </Style>
+  </Application.Styles>
+</Application>
