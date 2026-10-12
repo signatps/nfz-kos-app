@@ -110,7 +110,93 @@
         </Grid>
       </Border>
 
-      <ScrollViewer>
+      <!-- Mapa poza ScrollViewerem: wysokość = okno, lista po prawej scrolluje się osobno. -->
+      <Grid Margin="22,8,22,22" ColumnDefinitions="1.45*,0.9*" ColumnSpacing="12"
+            IsVisible="{Binding IsMap}">
+        <Border Classes="card" Padding="8">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Bottom" Margin="10,8,10,4" Classes="muted"
+                       Text="{Binding MapHover}" TextWrapping="Wrap" />
+            <controls:KosMapView Regions="{Binding RegionStats}"
+                                 Pins="{Binding Pins}"
+                                 HoverText="{Binding MapHover, Mode=TwoWay}"
+                                 SelectedHospitalKey="{Binding SelectedHospitalKey, Mode=TwoWay}" />
+          </DockPanel>
+        </Border>
+        <Border Grid.Column="1" Classes="card">
+          <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Spacing="14">
+              <StackPanel Spacing="4">
+                <DockPanel>
+                  <Button DockPanel.Dock="Right" Classes="quiet" Content="Wyczyść"
+                          Command="{Binding ClearHospitalCommand}"
+                          IsVisible="{Binding HasSelectedHospital}" />
+                  <TextBlock Classes="card-kicker" Text="SZCZEGÓŁY OŚRODKA" VerticalAlignment="Center" />
+                </DockPanel>
+                <TextBlock Text="{Binding SelectedHospitalTitle}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <TextBlock Classes="muted" Text="{Binding SelectedHospitalSubtitle}" TextWrapping="Wrap" />
+                <TextBlock Classes="muted" Text="{Binding SelectedHospitalSummary}" TextWrapping="Wrap"
+                           IsVisible="{Binding HasSelectedHospital}" />
+              </StackPanel>
+
+              <StackPanel Spacing="6" IsVisible="{Binding HasSelectedHospital}">
+                <TextBlock Classes="card-kicker" Text="HOSPITALIZACJE WEDŁUG LAT" />
+                <controls:YearSeriesChart Years="{Binding SelectedHospitalSeries}" Height="180" />
+                <TextBlock Classes="muted" Text="Słupki koralowe: lata z realizacją KOS. Morskie: hospitalizacje bez oznaczenia KOS." TextWrapping="Wrap" />
+              </StackPanel>
+
+              <StackPanel Spacing="6" IsVisible="{Binding HasSelectedHospital}">
+                <TextBlock Classes="card-kicker" Text="UDZIAŁ KOS W MIESIĄCACH" />
+                <controls:ShareChart Points="{Binding SelectedHospitalMonthly}" Height="160" />
+              </StackPanel>
+
+              <StackPanel Spacing="6" IsVisible="{Binding HasSelectedHospital}">
+                <TextBlock Classes="card-kicker" Text="REALIZACJE W LATACH" />
+                <ItemsControl ItemsSource="{Binding SelectedHospitalYears}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:HospitalYearRow">
+                      <Border Margin="0,0,0,8" Background="#EFEBE3" CornerRadius="8" Padding="10,8">
+                        <StackPanel Spacing="2">
+                          <TextBlock FontWeight="SemiBold" Text="{Binding Year}" />
+                          <TextBlock Text="{Binding Hospitalizations, StringFormat=Hospitalizacje: {0}}" />
+                          <TextBlock Classes="muted" Text="{Binding Status}" />
+                          <TextBlock Classes="muted" Text="{Binding KosShare, StringFormat=KOS: {0}}" />
+                          <TextBlock Classes="muted" Text="{Binding Control14, StringFormat=Kontrola 14 dni: {0}}" />
+                          <TextBlock Classes="muted" Text="{Binding Rehab30, StringFormat=Rehab 30 dni: {0}}" />
+                          <TextBlock Classes="muted" Text="{Binding Finish365, StringFormat=Zakończenie 365 dni: {0}}" />
+                        </StackPanel>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+
+              <StackPanel Spacing="6">
+                <TextBlock Classes="card-kicker" Text="LISTA OŚRODKÓW" />
+                <TextBlock Classes="muted" TextWrapping="Wrap"
+                           Text="Wpis „Lider” / złoty trójkąt na mapie = największa liczba hospitalizacji w województwie. Złoty punkt = położenie przybliżone." />
+                <ItemsControl ItemsSource="{Binding MapSideList}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:MapSideItem">
+                      <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                              Margin="0,0,0,6"
+                              Tag="{Binding Key}"
+                              Click="SelectHospitalFromList">
+                        <StackPanel>
+                          <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                          <TextBlock Classes="muted" Text="{Binding Subtitle}" TextWrapping="Wrap" />
+                        </StackPanel>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </StackPanel>
+          </ScrollViewer>
+        </Border>
+      </Grid>
+
+      <ScrollViewer IsVisible="{Binding !IsMap}">
         <Panel Margin="22,8,22,22">
           <StackPanel Spacing="16" IsVisible="{Binding IsSummary}">
             <UniformGrid Columns="4" ColumnSpacing="12">
@@ -190,89 +276,6 @@
               <DataGrid x:Name="TableGrid" ItemsSource="{Binding Rows}" CanUserSortColumns="True" CanUserResizeColumns="True" />
             </DockPanel>
           </Border>
-
-          <Grid ColumnDefinitions="1.35*,0.9*" ColumnSpacing="12" IsVisible="{Binding IsMap}">
-            <Border Classes="card" Padding="8">
-              <DockPanel>
-                <TextBlock DockPanel.Dock="Bottom" Margin="10" Classes="muted" Text="{Binding MapHover}" TextWrapping="Wrap" />
-                <controls:KosMapView Regions="{Binding RegionStats}"
-                                     Pins="{Binding Pins}"
-                                     HoverText="{Binding MapHover, Mode=TwoWay}"
-                                     SelectedHospitalKey="{Binding SelectedHospitalKey, Mode=TwoWay}" />
-              </DockPanel>
-            </Border>
-            <Border Grid.Column="1" Classes="card">
-              <ScrollViewer>
-                <StackPanel Spacing="14">
-                  <StackPanel Spacing="4">
-                    <DockPanel>
-                      <Button DockPanel.Dock="Right" Classes="quiet" Content="Wyczyść"
-                              Command="{Binding ClearHospitalCommand}"
-                              IsVisible="{Binding HasSelectedHospital}" />
-                      <TextBlock Classes="card-kicker" Text="SZCZEGÓŁY OŚRODKA" VerticalAlignment="Center" />
-                    </DockPanel>
-                    <TextBlock Text="{Binding SelectedHospitalTitle}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" />
-                    <TextBlock Classes="muted" Text="{Binding SelectedHospitalSubtitle}" TextWrapping="Wrap" />
-                    <TextBlock Classes="muted" Text="{Binding SelectedHospitalSummary}" TextWrapping="Wrap"
-                               IsVisible="{Binding HasSelectedHospital}" />
-                  </StackPanel>
-
-                  <StackPanel Spacing="6" IsVisible="{Binding HasSelectedHospital}">
-                    <TextBlock Classes="card-kicker" Text="HOSPITALIZACJE WEDŁUG LAT" />
-                    <controls:YearSeriesChart Years="{Binding SelectedHospitalSeries}" Height="180" />
-                    <TextBlock Classes="muted" Text="Słupki koralowe: lata z realizacją KOS. Morskie: hospitalizacje bez oznaczenia KOS." TextWrapping="Wrap" />
-                  </StackPanel>
-
-                  <StackPanel Spacing="6" IsVisible="{Binding HasSelectedHospital}">
-                    <TextBlock Classes="card-kicker" Text="UDZIAŁ KOS W MIESIĄCACH" />
-                    <controls:ShareChart Points="{Binding SelectedHospitalMonthly}" Height="160" />
-                  </StackPanel>
-
-                  <StackPanel Spacing="6" IsVisible="{Binding HasSelectedHospital}">
-                    <TextBlock Classes="card-kicker" Text="REALIZACJE W LATACH" />
-                    <ItemsControl ItemsSource="{Binding SelectedHospitalYears}">
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:HospitalYearRow">
-                          <Border Margin="0,0,0,8" Background="#EFEBE3" CornerRadius="8" Padding="10,8">
-                            <StackPanel Spacing="2">
-                              <TextBlock FontWeight="SemiBold" Text="{Binding Year}" />
-                              <TextBlock Text="{Binding Hospitalizations, StringFormat=Hospitalizacje: {0}}" />
-                              <TextBlock Classes="muted" Text="{Binding Status}" />
-                              <TextBlock Classes="muted" Text="{Binding KosShare, StringFormat=KOS: {0}}" />
-                              <TextBlock Classes="muted" Text="{Binding Control14, StringFormat=Kontrola 14 dni: {0}}" />
-                              <TextBlock Classes="muted" Text="{Binding Rehab30, StringFormat=Rehab 30 dni: {0}}" />
-                              <TextBlock Classes="muted" Text="{Binding Finish365, StringFormat=Zakończenie 365 dni: {0}}" />
-                            </StackPanel>
-                          </Border>
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                  </StackPanel>
-
-                  <StackPanel Spacing="6">
-                    <TextBlock Classes="card-kicker" Text="LISTA OŚRODKÓW" />
-                    <TextBlock Classes="muted" TextWrapping="Wrap"
-                               Text="Wpis „Lider” / złoty trójkąt na mapie = największa liczba hospitalizacji w województwie. Złoty punkt = położenie przybliżone." />
-                    <ItemsControl ItemsSource="{Binding MapSideList}">
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:MapSideItem">
-                          <Button Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                                  Margin="0,0,0,6"
-                                  Tag="{Binding Key}"
-                                  Click="SelectHospitalFromList">
-                            <StackPanel>
-                              <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontWeight="SemiBold" />
-                              <TextBlock Classes="muted" Text="{Binding Subtitle}" TextWrapping="Wrap" />
-                            </StackPanel>
-                          </Button>
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                  </StackPanel>
-                </StackPanel>
-              </ScrollViewer>
-            </Border>
-          </Grid>
 
           <Border Classes="card" IsVisible="{Binding IsMethodology}">
             <ScrollViewer MaxHeight="680">

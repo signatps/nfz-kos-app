@@ -314,6 +314,10 @@ public partial class MainViewModel : ObservableObject
             });
         }
 
+        // ObservableCollection mutuje się w miejscu — wymuś odświeżenie bindowania mapy.
+        OnPropertyChanged(nameof(Pins));
+        OnPropertyChanged(nameof(MapSideList));
+
         if (!string.IsNullOrEmpty(SelectedHospitalKey))
             LoadSelectedHospital();
     }

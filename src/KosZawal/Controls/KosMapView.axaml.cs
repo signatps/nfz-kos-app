@@ -1,3 +1,4 @@
+using System.Collections.Specialized;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
@@ -38,6 +39,7 @@ public partial class KosMapView : UserControl
     private bool _building;
     private bool _sizeHooked;
     private bool _fittedPoland;
+    private INotifyCollectionChanged? _pinsCollection;
 
     public KosMapView()
     {
@@ -45,9 +47,11 @@ public partial class KosMapView : UserControl
         AttachedToVisualTree += (_, _) =>
         {
             HookSizeEvents();
+            HookPinsCollection();
             if (IsVisible)
                 EnsureMap();
         };
+        DetachedFromVisualTree += (_, _) => UnhookPinsCollection();
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -56,12 +60,22 @@ public partial class KosMapView : UserControl
         if (change.Property == IsVisibleProperty && IsVisible)
         {
             EnsureMap();
-            // Po ponownym wejściu w zakładkę Mapa — wymuś kadr na Polskę.
-            Dispatcher.UIThread.Post(() => FitPoland(force: true), DispatcherPriority.Background);
+            Dispatcher.UIThread.Post(() =>
+            {
+                RefreshLayers();
+                FitPoland(force: true);
+            }, DispatcherPriority.Background);
         }
 
-        if (change.Property == RegionsProperty || change.Property == PinsProperty)
+        if (change.Property == RegionsProperty)
             RefreshLayers();
+
+        if (change.Property == PinsProperty)
+        {
+            HookPinsCollection();
+            RefreshLayers();
+            FitPoland(force: true);
+        }
     }
 
     public IReadOnlyList<VoivodeshipStat>? Regions
@@ -140,6 +154,33 @@ public partial class KosMapView : UserControl
         MapControl.Loaded += (_, _) => FitPoland(force: true);
     }
 
+    private void HookPinsCollection()
+    {
+        UnhookPinsCollection();
+        if (Pins is INotifyCollectionChanged notify)
+        {
+            _pinsCollection = notify;
+            notify.CollectionChanged += OnPinsCollectionChanged;
+        }
+    }
+
+    private void UnhookPinsCollection()
+    {
+        if (_pinsCollection is null)
+            return;
+        _pinsCollection.CollectionChanged -= OnPinsCollectionChanged;
+        _pinsCollection = null;
+    }
+
+    private void OnPinsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            RefreshLayers();
+            FitPoland(force: true);
+        }, DispatcherPriority.Background);
+    }
+
     private void EnsureMap()
     {
         if (_ready || _building)
@@ -149,6 +190,7 @@ public partial class KosMapView : UserControl
         try
         {
             HookSizeEvents();
+            HookPinsCollection();
 
             var map = new Map
             {
@@ -164,9 +206,7 @@ public partial class KosMapView : UserControl
             map.Layers.Add(_borders);
             map.Layers.Add(_points);
 
-            var extent = VoivodeshipGeo.PolandExtent();
-            map.Navigator.OverridePanBounds = extent;
-            // ZoomToBox przy viewport 0×0 jest no-op — FitPoland wołamy z SizeChanged/Loaded.
+            map.Navigator.OverridePanBounds = VoivodeshipGeo.PolandExtent();
             map.Tapped += OnMapTapped;
             map.Info += OnMapInfo;
 
@@ -231,6 +271,10 @@ public partial class KosMapView : UserControl
             _points.FeaturesWereModified();
             MapControl.Map?.RefreshData();
             MapControl.Refresh();
+
+            var count = _points.Features?.Count() ?? 0;
+            if (_mode != MapDisplayMode.Administrative && count == 0 && (Pins?.Count ?? 0) > 0)
+                HoverText = "Brak punktów na mapie — sprawdź geokodowanie ośrodków.";
         }
         catch (Exception ex)
         {
@@ -258,15 +302,20 @@ public partial class KosMapView : UserControl
 
             var extent = VoivodeshipGeo.PolandExtent();
             navigator.OverridePanBounds = extent;
-            navigator.ZoomToBox(extent, MBoxFit.Fit);
 
-            // Dodatkowe wycentrowanie — gdy ZoomToBox zawiedzie przy nietypowym aspect ratio.
+            // FitWidth: przy wysokim panelu nie rozciąga kadru na Arktykę.
+            navigator.ZoomToBox(extent, MBoxFit.FitWidth);
+
             var (cx, cy) = SphericalMercator.FromLonLat(19.2, 52.1);
-            var resolution = Math.Max(extent.Width / Math.Max(width, 1), extent.Height / Math.Max(height, 1)) * 1.08;
+            var resolution = extent.Width / Math.Max(width, 1) * 1.12;
             if (resolution is <= 0 or double.NaN or double.PositiveInfinity)
-                resolution = 2200;
-            navigator.CenterOnAndZoomTo(new MPoint(cx, cy), resolution);
+                resolution = 1800;
+            // Ogranicz rozdzielczość, żeby Polska zajmowała sensowną część wysokości.
+            var maxResByHeight = extent.Height / Math.Max(height, 1) * 1.25;
+            if (resolution > maxResByHeight * 2.5)
+                resolution = Math.Max(maxResByHeight, extent.Width / Math.Max(width, 1));
 
+            navigator.CenterOnAndZoomTo(new MPoint(cx, cy), resolution);
             MapControl.Refresh();
             _fittedPoland = true;
         }

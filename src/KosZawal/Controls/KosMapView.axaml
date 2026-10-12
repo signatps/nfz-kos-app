@@ -13,7 +13,7 @@
                  Text="Mapa Polski (obszar poza krajem zasłonięty). Złoty trójkąt = lider województwa. Kliknij punkt, by zobaczyć szczegóły." />
     </StackPanel>
     <Border Background="#F3F0E8" CornerRadius="12" ClipToBounds="True">
-      <mapsui:MapControl x:Name="MapControl" MinHeight="640" />
+      <mapsui:MapControl x:Name="MapControl" />
     </Border>
   </DockPanel>
 </UserControl>

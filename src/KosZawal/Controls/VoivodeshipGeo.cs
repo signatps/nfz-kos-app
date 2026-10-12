@@ -150,35 +150,26 @@ internal static class VoivodeshipGeo
 
             if (isLeader)
             {
-                // Korona jako trójkąt + etykieta — bez PNG/Image (to wywalało Skia w single-file).
+                // Złoty trójkąt = lider; etykieta tylko w hover (LabelStyle bywał niewidoczny / ciężki).
                 feature.Styles.Add(new SymbolStyle
                 {
                     SymbolType = SymbolType.Triangle,
-                    SymbolScale = 0.85,
+                    SymbolScale = 1.15,
                     Fill = new Brush(new Color(212, 160, 48)),
-                    Outline = new Pen(Color.White, 2),
-                });
-                feature.Styles.Add(new LabelStyle
-                {
-                    Text = "Lider · " + ShortName(pin.Name),
-                    ForeColor = new Color(18, 36, 51),
-                    BackColor = new Brush(new Color(243, 240, 232, 235)),
-                    Font = new Font { FontFamily = "Segoe UI", Size = 11 },
-                    Offset = new Offset(0, -22),
-                    CollisionDetection = false,
+                    Outline = new Pen(Color.White, 2.2),
                 });
             }
             else
             {
-                var color = pin.Quality == "nominatim"
+                var color = pin.Quality is "nominatim" or "adres"
                     ? (pin.KosShare ?? 0) >= 0.5 ? new Color(196, 71, 79) : new Color(14, 110, 106)
                     : new Color(138, 106, 47);
                 feature.Styles.Add(new SymbolStyle
                 {
                     SymbolType = SymbolType.Ellipse,
-                    SymbolScale = 0.42 + Math.Min(0.28, Math.Sqrt(Math.Max(pin.Hospitalizations, 0)) / 90),
+                    SymbolScale = 0.7 + Math.Min(0.45, Math.Sqrt(Math.Max(pin.Hospitalizations, 0)) / 70),
                     Fill = new Brush(color),
-                    Outline = new Pen(Color.White, 1.4),
+                    Outline = new Pen(Color.White, 1.6),
                 });
             }
 
