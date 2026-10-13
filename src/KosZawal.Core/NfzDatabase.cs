@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using Microsoft.Data.Sqlite;
 
 namespace KosZawal;
@@ -769,6 +770,479 @@ public sealed class NfzDatabase : IDisposable
         return list;
     }
 
+    public bool HasRpwdlData
+    {
+        get
+        {
+            using var command = _connection.CreateCommand();
+            command.CommandText = "SELECT COUNT(*) FROM rpwdl_komorki;";
+            return Convert.ToInt64(command.ExecuteScalar()) > 0;
+        }
+    }
+
+    public bool IsRpwdlFresh(TimeSpan maxAge)
+    {
+        var raw = Meta("rpwdl_fetched_at");
+        if (string.IsNullOrWhiteSpace(raw))
+            return false;
+        if (!DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var fetched))
+            return false;
+        return DateTime.UtcNow - fetched.ToUniversalTime() <= maxAge;
+    }
+
+    public void ReplaceRpwdlSnapshot(
+        IReadOnlyList<RpwdlProviderRow> providers,
+        IReadOnlyList<RpwdlCellRow> cells,
+        string referenceDate,
+        string fileHash,
+        string sourceUrl)
+    {
+        using var transaction = _connection.BeginTransaction();
+        Execute("DELETE FROM rpwdl_komorki;", transaction);
+        Execute("DELETE FROM rpwdl_podmioty;", transaction);
+
+        using (var insert = _connection.CreateCommand())
+        {
+            insert.Transaction = transaction;
+            insert.CommandText = """
+                INSERT INTO rpwdl_podmioty(ledger_id, nip, regon, book_number, name, place, street, building, post_code, agency_code)
+                VALUES($id, $nip, $regon, $book, $name, $place, $street, $bldg, $post, $agency);
+                """;
+            foreach (var provider in providers)
+            {
+                insert.Parameters.Clear();
+                insert.Parameters.AddWithValue("$id", provider.LedgerId);
+                insert.Parameters.AddWithValue("$nip", provider.Nip);
+                insert.Parameters.AddWithValue("$regon", provider.Regon);
+                insert.Parameters.AddWithValue("$book", provider.BookNumber);
+                insert.Parameters.AddWithValue("$name", provider.Name);
+                insert.Parameters.AddWithValue("$place", provider.Place);
+                insert.Parameters.AddWithValue("$street", provider.Street);
+                insert.Parameters.AddWithValue("$bldg", provider.Building);
+                insert.Parameters.AddWithValue("$post", provider.PostCode);
+                insert.Parameters.AddWithValue("$agency", provider.AgencyCode);
+                insert.ExecuteNonQuery();
+            }
+        }
+
+        using (var insert = _connection.CreateCommand())
+        {
+            insert.Transaction = transaction;
+            insert.CommandText = """
+                INSERT INTO rpwdl_komorki(
+                    cell_id, ledger_id, facility_id, unit_id, regon, specialty_code, specialty_name, category,
+                    name, place, street, building, post_code, beds_total, beds_cardiac_icu, suspended_from, suspended_to)
+                VALUES(
+                    $cid, $lid, $fid, $uid, $regon, $scode, $sname, $cat,
+                    $name, $place, $street, $bldg, $post, $beds, $icu, $sfrom, $sto);
+                """;
+            foreach (var cell in cells)
+            {
+                insert.Parameters.Clear();
+                insert.Parameters.AddWithValue("$cid", cell.CellId);
+                insert.Parameters.AddWithValue("$lid", cell.LedgerId);
+                insert.Parameters.AddWithValue("$fid", cell.FacilityId);
+                insert.Parameters.AddWithValue("$uid", cell.UnitId);
+                insert.Parameters.AddWithValue("$regon", cell.Regon);
+                insert.Parameters.AddWithValue("$scode", cell.SpecialtyCode);
+                insert.Parameters.AddWithValue("$sname", cell.SpecialtyName);
+                insert.Parameters.AddWithValue("$cat", cell.Category);
+                insert.Parameters.AddWithValue("$name", cell.Name);
+                insert.Parameters.AddWithValue("$place", cell.Place);
+                insert.Parameters.AddWithValue("$street", cell.Street);
+                insert.Parameters.AddWithValue("$bldg", cell.Building);
+                insert.Parameters.AddWithValue("$post", cell.PostCode);
+                insert.Parameters.AddWithValue("$beds", cell.BedsTotal);
+                insert.Parameters.AddWithValue("$icu", cell.BedsCardiacIcu);
+                insert.Parameters.AddWithValue("$sfrom", cell.SuspendedFrom);
+                insert.Parameters.AddWithValue("$sto", cell.SuspendedTo);
+                insert.ExecuteNonQuery();
+            }
+        }
+
+        transaction.Commit();
+        SetMeta("rpwdl_fetched_at", DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture));
+        SetMeta("rpwdl_reference_date", referenceDate);
+        SetMeta("rpwdl_file_hash", fileHash);
+        SetMeta("rpwdl_source_url", sourceUrl);
+        SetMeta("rpwdl_cell_count", cells.Count.ToString(CultureInfo.InvariantCulture));
+    }
+
+    public CenterHospitalData ResolveCenterHospitalData(string voivodeship, string centerName, int activityYear)
+    {
+        var retrievedAt = Meta("rpwdl_fetched_at");
+        var referenceDate = Meta("rpwdl_reference_date");
+        var sourceUrl = Meta("rpwdl_source_url") ?? RpwdlImporter.SourceUrl;
+
+        if (!HasRpwdlData)
+        {
+            return new CenterHospitalData(
+                MappingStatus.Unmatched,
+                "rpwdl_not_imported",
+                null, null, null, null,
+                CenterMetric.Missing("registered_beds", MetricAvailability.NotImported, "Wymagany import RPWDL."),
+                CenterMetric.Missing("patients", MetricAvailability.NotImported, "BASiW/roczna skala — brak automatycznego źródła w tej wersji."),
+                BuildInfarctHospitalizationsMetric(voivodeship, centerName, activityYear),
+                CenterMetric.Missing("registered_beds", MetricAvailability.NotImported, "Wymagany import RPWDL."),
+                [],
+                "Dane oddziałów; nie liczba uczestników KOS-zawał.");
+        }
+
+        var link = FindOrCreateRpwdlLink(voivodeship, centerName);
+        if (link is null || string.IsNullOrWhiteSpace(link.Value.LedgerId))
+        {
+            return new CenterHospitalData(
+                MappingStatus.Unmatched,
+                link?.Basis ?? "no_match",
+                null, null, null, null,
+                CenterMetric.Missing("registered_beds", MetricAvailability.NotPublished, "Brak dopasowania podmiotu RPWDL."),
+                CenterMetric.Missing("patients", MetricAvailability.NotImported, "BASiW/roczna skala — brak automatycznego źródła w tej wersji."),
+                BuildInfarctHospitalizationsMetric(voivodeship, centerName, activityYear),
+                CenterMetric.Missing("registered_beds", MetricAvailability.NotPublished, "Brak dopasowania podmiotu RPWDL."),
+                [],
+                "Dane oddziałów; nie liczba uczestników KOS-zawał.");
+        }
+
+        var provider = ReadRpwdlProvider(link.Value.LedgerId);
+        var departments = ReadRpwdlDepartments(link.Value.LedgerId);
+        var cardioBeds = departments
+            .Where(d => d.Category is "cardiology" or "cardiac_intensive_care")
+            .Where(d => d.Status == "active")
+            .Sum(d => d.BedsTotal);
+        var rehabBeds = departments
+            .Where(d => d.Category == "cardiac_rehabilitation")
+            .Where(d => d.Status == "active")
+            .Sum(d => d.BedsTotal);
+        var mapping = Enum.TryParse<MappingStatus>(link.Value.Status, true, out var status)
+            ? status
+            : MappingStatus.Unmatched;
+
+        CenterMetric Beds(string specialty, int value) => new(
+            value,
+            MetricAvailability.Available,
+            "registered_beds",
+            null,
+            referenceDate,
+            retrievedAt,
+            "provider",
+            specialty,
+            true,
+            "rpwdl",
+            sourceUrl,
+            "Łóżka zarejestrowane w RPWDL (nie wolne/obsadzone). Intensywny nadzór nie jest doliczany osobno do ogółem.");
+
+        return new CenterHospitalData(
+            mapping,
+            link.Value.Basis,
+            provider?.Name,
+            provider?.Nip,
+            provider?.Regon,
+            link.Value.LedgerId,
+            Beds("cardiology", cardioBeds),
+            CenterMetric.Missing("patients", MetricAvailability.NotImported, "BASiW — brak potwierdzonego automatycznego eksportu w tej wersji."),
+            BuildInfarctHospitalizationsMetric(voivodeship, centerName, activityYear),
+            Beds("cardiac_rehabilitation", rehabBeds),
+            departments,
+            "Dane oddziałów z RPWDL; nie liczba uczestników KOS-zawał.");
+    }
+
+    private CenterMetric BuildInfarctHospitalizationsMetric(string voivodeship, string centerName, int year)
+    {
+        using var command = _connection.CreateCommand();
+        command.CommandText = """
+            SELECT COALESCE(liczba_hospitalizacji, 0)
+            FROM placowki
+            WHERE wojewodztwo = $woj AND swiadczeniodawca = $name AND rok = $year
+              AND typ_zawalu = $type
+            LIMIT 1;
+            """;
+        command.Parameters.AddWithValue("$woj", voivodeship);
+        command.Parameters.AddWithValue("$name", centerName);
+        command.Parameters.AddWithValue("$year", year);
+        command.Parameters.AddWithValue("$type", ReportCatalog.InfarctAll);
+        var value = command.ExecuteScalar();
+        if (value is null or DBNull)
+        {
+            return CenterMetric.Missing(
+                "hospitalizations",
+                MetricAvailability.NotPublished,
+                "Brak hospitalizacji zawałowych w raporcie KOS dla tego roku.");
+        }
+
+        return new CenterMetric(
+            Convert.ToDouble(value, CultureInfo.InvariantCulture),
+            MetricAvailability.Available,
+            "hospitalizations",
+            year,
+            null,
+            Meta("synced_at"),
+            "provider",
+            "myocardial_infarction_kos_report",
+            true,
+            "nfz-powerbi-zawaly",
+            ReportCatalog.ReportUrl,
+            "Hospitalizacje zawałowe z raportu NFZ KOS-zawał — nie całkowita kardiologia oddziału.");
+    }
+
+    private (string LedgerId, string Status, string Basis)? FindOrCreateRpwdlLink(string voivodeship, string centerName)
+    {
+        using (var command = _connection.CreateCommand())
+        {
+            command.CommandText = """
+                SELECT ledger_id, mapping_status, mapping_basis, confirmed
+                FROM center_rpwdl_link
+                WHERE wojewodztwo = $woj AND swiadczeniodawca = $name
+                LIMIT 1;
+                """;
+            command.Parameters.AddWithValue("$woj", voivodeship);
+            command.Parameters.AddWithValue("$name", centerName);
+            using var reader = command.ExecuteReader();
+            if (reader.Read())
+            {
+                var confirmed = !reader.IsDBNull(3) && reader.GetInt32(3) == 1;
+                var status = reader.IsDBNull(1) ? "unmatched" : reader.GetString(1);
+                if (confirmed || !string.IsNullOrWhiteSpace(reader.IsDBNull(0) ? null : reader.GetString(0)))
+                {
+                    return (
+                        reader.IsDBNull(0) ? "" : reader.GetString(0),
+                        status,
+                        reader.IsDBNull(2) ? "" : reader.GetString(2));
+                }
+            }
+        }
+
+        string? nip = null;
+        string? regon = null;
+        using (var command = _connection.CreateCommand())
+        {
+            command.CommandText = """
+                SELECT provider_nip, provider_regon, provider_code
+                FROM umowy_cache
+                WHERE wojewodztwo = $woj AND swiadczeniodawca = $name
+                ORDER BY rok DESC
+                LIMIT 1;
+                """;
+            command.Parameters.AddWithValue("$woj", voivodeship);
+            command.Parameters.AddWithValue("$name", centerName);
+            using var reader = command.ExecuteReader();
+            if (reader.Read())
+            {
+                nip = reader.IsDBNull(0) ? null : reader.GetString(0);
+                regon = reader.IsDBNull(1) ? null : reader.GetString(1);
+            }
+        }
+
+        string? ledgerId = null;
+        var basis = "unmatched";
+        var statusOut = "unmatched";
+
+        if (!string.IsNullOrWhiteSpace(nip))
+        {
+            var byNip = FindProvidersByNip(nip!);
+            if (byNip.Count == 1)
+            {
+                ledgerId = byNip[0].LedgerId;
+                basis = "nip";
+                statusOut = "confirmed";
+            }
+            else if (byNip.Count > 1)
+            {
+                ledgerId = byNip[0].LedgerId;
+                basis = "nip_ambiguous";
+                statusOut = "ambiguous";
+            }
+        }
+
+        if (ledgerId is null && !string.IsNullOrWhiteSpace(regon))
+        {
+            var byRegon = FindProvidersByRegonPrefix(regon!);
+            if (byRegon.Count == 1)
+            {
+                ledgerId = byRegon[0].LedgerId;
+                basis = "regon";
+                statusOut = "confirmed";
+            }
+            else if (byRegon.Count > 1)
+            {
+                ledgerId = byRegon[0].LedgerId;
+                basis = "regon_ambiguous";
+                statusOut = "ambiguous";
+            }
+        }
+
+        if (ledgerId is null)
+        {
+            var byName = FindProvidersByName(centerName);
+            if (byName.Count == 1)
+            {
+                ledgerId = byName[0].LedgerId;
+                basis = "name";
+                statusOut = "confirmed";
+            }
+            else if (byName.Count > 1)
+            {
+                ledgerId = byName[0].LedgerId;
+                basis = "name_ambiguous";
+                statusOut = "ambiguous";
+            }
+        }
+
+        using (var upsert = _connection.CreateCommand())
+        {
+            upsert.CommandText = """
+                INSERT INTO center_rpwdl_link(wojewodztwo, swiadczeniodawca, ledger_id, mapping_status, mapping_basis, confirmed)
+                VALUES($woj, $name, $ledger, $status, $basis, 0)
+                ON CONFLICT(wojewodztwo, swiadczeniodawca) DO UPDATE SET
+                    ledger_id = excluded.ledger_id,
+                    mapping_status = excluded.mapping_status,
+                    mapping_basis = excluded.mapping_basis
+                WHERE center_rpwdl_link.confirmed = 0;
+                """;
+            upsert.Parameters.AddWithValue("$woj", voivodeship);
+            upsert.Parameters.AddWithValue("$name", centerName);
+            upsert.Parameters.AddWithValue("$ledger", (object?)ledgerId ?? DBNull.Value);
+            upsert.Parameters.AddWithValue("$status", statusOut);
+            upsert.Parameters.AddWithValue("$basis", basis);
+            upsert.ExecuteNonQuery();
+        }
+
+        return (ledgerId ?? "", statusOut, basis);
+    }
+
+    private List<(string LedgerId, string Name, string Nip, string Regon)> FindProvidersByNip(string nip)
+    {
+        using var command = _connection.CreateCommand();
+        command.CommandText = "SELECT ledger_id, name, nip, regon FROM rpwdl_podmioty WHERE nip = $nip;";
+        command.Parameters.AddWithValue("$nip", nip);
+        return ReadProviderRows(command);
+    }
+
+    private List<(string LedgerId, string Name, string Nip, string Regon)> FindProvidersByRegonPrefix(string regon)
+    {
+        var prefix = new string(regon.Where(char.IsDigit).Take(9).ToArray());
+        if (prefix.Length < 9)
+            return [];
+        using var command = _connection.CreateCommand();
+        command.CommandText = "SELECT ledger_id, name, nip, regon FROM rpwdl_podmioty WHERE substr(regon,1,9) = $regon;";
+        command.Parameters.AddWithValue("$regon", prefix);
+        return ReadProviderRows(command);
+    }
+
+    private List<(string LedgerId, string Name, string Nip, string Regon)> FindProvidersByName(string centerName)
+    {
+        var needle = NormalizeName(centerName);
+        if (needle.Length < 8)
+            return [];
+        using var command = _connection.CreateCommand();
+        command.CommandText = "SELECT ledger_id, name, nip, regon FROM rpwdl_podmioty;";
+        var all = ReadProviderRows(command);
+        return all
+            .Select(row => (row, score: NameScore(needle, NormalizeName(row.Name))))
+            .Where(item => item.score >= 70)
+            .OrderByDescending(item => item.score)
+            .Select(item => item.row)
+            .Take(5)
+            .ToList();
+    }
+
+    private static List<(string LedgerId, string Name, string Nip, string Regon)> ReadProviderRows(SqliteCommand command)
+    {
+        var list = new List<(string, string, string, string)>();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            list.Add((
+                reader.GetString(0),
+                reader.IsDBNull(1) ? "" : reader.GetString(1),
+                reader.IsDBNull(2) ? "" : reader.GetString(2),
+                reader.IsDBNull(3) ? "" : reader.GetString(3)));
+        }
+
+        return list;
+    }
+
+    private (string LedgerId, string Name, string Nip, string Regon)? ReadRpwdlProvider(string ledgerId)
+    {
+        using var command = _connection.CreateCommand();
+        command.CommandText = "SELECT ledger_id, name, nip, regon FROM rpwdl_podmioty WHERE ledger_id = $id LIMIT 1;";
+        command.Parameters.AddWithValue("$id", ledgerId);
+        using var reader = command.ExecuteReader();
+        if (!reader.Read())
+            return null;
+        return (
+            reader.GetString(0),
+            reader.IsDBNull(1) ? "" : reader.GetString(1),
+            reader.IsDBNull(2) ? "" : reader.GetString(2),
+            reader.IsDBNull(3) ? "" : reader.GetString(3));
+    }
+
+    private List<DepartmentInfo> ReadRpwdlDepartments(string ledgerId)
+    {
+        using var command = _connection.CreateCommand();
+        command.CommandText = """
+            SELECT cell_id, name, specialty_code, specialty_name, category, beds_total, beds_cardiac_icu,
+                   place, street, building, post_code, suspended_from
+            FROM rpwdl_komorki
+            WHERE ledger_id = $id
+            ORDER BY
+              CASE category
+                WHEN 'cardiology' THEN 0
+                WHEN 'cardiac_intensive_care' THEN 1
+                WHEN 'cardiac_rehabilitation' THEN 2
+                ELSE 3
+              END,
+              beds_total DESC,
+              name;
+            """;
+        command.Parameters.AddWithValue("$id", ledgerId);
+        var list = new List<DepartmentInfo>();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            var suspended = !reader.IsDBNull(11) && !string.IsNullOrWhiteSpace(reader.GetString(11));
+            var street = reader.IsDBNull(8) ? "" : reader.GetString(8);
+            var building = reader.IsDBNull(9) ? "" : reader.GetString(9);
+            var post = reader.IsDBNull(10) ? "" : reader.GetString(10);
+            list.Add(new DepartmentInfo(
+                reader.GetString(0),
+                reader.IsDBNull(1) ? "" : reader.GetString(1),
+                reader.IsDBNull(2) ? "" : reader.GetString(2),
+                reader.IsDBNull(3) ? "" : reader.GetString(3),
+                reader.IsDBNull(4) ? "" : reader.GetString(4),
+                suspended ? "suspended" : "active",
+                reader.IsDBNull(5) ? 0 : reader.GetInt32(5),
+                reader.IsDBNull(6) ? 0 : reader.GetInt32(6),
+                reader.IsDBNull(7) ? "" : reader.GetString(7),
+                $"{street} {building}, {post}".Trim().Trim(',')));
+        }
+
+        return list;
+    }
+
+    private static string NormalizeName(string value)
+    {
+        var upper = (value ?? "").ToUpperInvariant()
+            .Replace('Ą', 'A').Replace('Ć', 'C').Replace('Ę', 'E').Replace('Ł', 'L')
+            .Replace('Ń', 'N').Replace('Ó', 'O').Replace('Ś', 'S').Replace('Ź', 'Z').Replace('Ż', 'Z');
+        upper = Regex.Replace(upper, @"[^A-Z0-9]+", " ");
+        return Regex.Replace(upper, @"\s+", " ").Trim();
+    }
+
+    private static int NameScore(string requested, string candidate)
+    {
+        if (requested.Length == 0 || candidate.Length == 0)
+            return 0;
+        if (requested == candidate)
+            return 100;
+        if (candidate.Contains(requested, StringComparison.Ordinal) || requested.Contains(candidate, StringComparison.Ordinal))
+            return 85;
+        var reqTokens = requested.Split(' ', StringSplitOptions.RemoveEmptyEntries).Where(t => t.Length >= 4).ToArray();
+        if (reqTokens.Length == 0)
+            return 0;
+        var hits = reqTokens.Count(token => candidate.Contains(token, StringComparison.Ordinal));
+        return hits * 100 / reqTokens.Length;
+    }
+
     public void Dispose() => _connection.Dispose();
 
     private List<object?[]> QueryOffset(
@@ -951,6 +1425,49 @@ public sealed class NfzDatabase : IDisposable
                 date_to TEXT,
                 kind TEXT
             );
+            CREATE TABLE IF NOT EXISTS rpwdl_podmioty (
+                ledger_id TEXT PRIMARY KEY,
+                nip TEXT,
+                regon TEXT,
+                book_number TEXT,
+                name TEXT,
+                place TEXT,
+                street TEXT,
+                building TEXT,
+                post_code TEXT,
+                agency_code TEXT
+            );
+            CREATE TABLE IF NOT EXISTS rpwdl_komorki (
+                cell_id TEXT PRIMARY KEY,
+                ledger_id TEXT,
+                facility_id TEXT,
+                unit_id TEXT,
+                regon TEXT,
+                specialty_code TEXT,
+                specialty_name TEXT,
+                category TEXT,
+                name TEXT,
+                place TEXT,
+                street TEXT,
+                building TEXT,
+                post_code TEXT,
+                beds_total INTEGER,
+                beds_cardiac_icu INTEGER,
+                suspended_from TEXT,
+                suspended_to TEXT
+            );
+            CREATE TABLE IF NOT EXISTS center_rpwdl_link (
+                wojewodztwo TEXT,
+                swiadczeniodawca TEXT,
+                ledger_id TEXT,
+                mapping_status TEXT,
+                mapping_basis TEXT,
+                confirmed INTEGER DEFAULT 0,
+                PRIMARY KEY (wojewodztwo, swiadczeniodawca)
+            );
+            CREATE INDEX IF NOT EXISTS ix_rpwdl_pod_nip ON rpwdl_podmioty(nip);
+            CREATE INDEX IF NOT EXISTS ix_rpwdl_pod_regon ON rpwdl_podmioty(regon);
+            CREATE INDEX IF NOT EXISTS ix_rpwdl_kom_ledger ON rpwdl_komorki(ledger_id);
             """);
     }
 

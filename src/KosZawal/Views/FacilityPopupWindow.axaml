@@ -32,6 +32,43 @@
 
         <Border Classes="card">
           <StackPanel Spacing="8">
+            <TextBlock Classes="card-kicker" Text="ODDZIAŁY I SKALA LECZENIA (RPWDL)" />
+            <TextBlock Classes="muted" Text="{Binding StructureSummary}" TextWrapping="Wrap" />
+            <ItemsControl ItemsSource="{Binding StructureSummaryRows}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:FacilityPopupRow">
+                  <Border Margin="0,0,0,6" Background="#E8EEE8" CornerRadius="8" Padding="10,8">
+                    <StackPanel Spacing="2">
+                      <TextBlock FontWeight="SemiBold" Text="{Binding Title}" TextWrapping="Wrap" />
+                      <TextBlock Classes="muted" Text="{Binding Subtitle}" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Button Classes="quiet" Content="Pokaż oddziały i źródła"
+                    Click="ToggleDepartmentsClick" HorizontalAlignment="Left" />
+            <StackPanel IsVisible="{Binding ShowDepartments}" Spacing="6">
+              <TextBlock Classes="muted" Text="{Binding DepartmentsSummary}" TextWrapping="Wrap" />
+              <ItemsControl ItemsSource="{Binding DepartmentRows}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:FacilityPopupRow">
+                    <Border Margin="0,0,0,6" Background="#F3F0E8" CornerRadius="8" Padding="10,8"
+                            BorderBrush="#D5D0C6" BorderThickness="1">
+                      <StackPanel Spacing="2">
+                        <TextBlock FontWeight="SemiBold" Text="{Binding Title}" TextWrapping="Wrap" />
+                        <TextBlock Classes="muted" Text="{Binding Subtitle}" TextWrapping="Wrap" />
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="8">
             <TextBlock Classes="card-kicker" Text="DANE PODMIOTU (API UMOWY NFZ)" />
             <TextBlock Text="{Binding ProviderBlock}" TextWrapping="Wrap" LineHeight="22" />
           </StackPanel>

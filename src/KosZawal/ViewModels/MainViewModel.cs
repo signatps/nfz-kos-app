@@ -131,6 +131,7 @@ public partial class MainViewModel : ObservableObject
     public bool IsMethodology => Current.Id == "metodyka";
     public bool IsExport => Current.Id == "eksport";
     public bool IsTrends => Current.Id == "trendy";
+    public bool IsPlacowki => Current.Id is "placowki" or "kos";
     public IReadOnlyList<MonthPoint> Monthly => Kpi?.Monthly ?? [];
     public IReadOnlyList<VoivodeshipStat> RegionStats => Kpi?.ByVoivodeship ?? [];
 
@@ -399,6 +400,37 @@ public partial class MainViewModel : ObservableObject
         FacilityPopupRequested?.Invoke(SelectedHospital, Year);
     }
 
+    public void OpenFacilityFromTableRow(GridRow? row)
+    {
+        if (row is null || row.Cells.Length < 3)
+            return;
+
+        // placowki/kos: Rok, Województwo, Świadczeniodawca, …
+        var woj = row.Cells[1]?.Trim();
+        var name = row.Cells[2]?.Trim();
+        if (string.IsNullOrWhiteSpace(woj) || string.IsNullOrWhiteSpace(name))
+            return;
+
+        var detail = _database.HospitalDetail(woj, name, InfarctType, Year);
+        if (detail is null)
+        {
+            // Placówka spoza aktywnego filtra KOS — zbuduj minimalny detal z lat dostępnych.
+            detail = _database.HospitalDetail(woj, name, ReportCatalog.InfarctAll, Year);
+        }
+
+        if (detail is null)
+        {
+            Status = $"Brak szczegółów hospitalizacji dla: {name}";
+            return;
+        }
+
+        var key = woj + "\u001f" + name;
+        if (string.Equals(SelectedHospitalKey, key, StringComparison.Ordinal))
+            FacilityPopupRequested?.Invoke(detail, Year);
+        else
+            SelectedHospitalKey = key; // LoadSelectedHospital otworzy popup
+    }
+
     private string BuildMethodology()
     {
         var report = _database.Meta("methodology") ?? MethodologyText.Fallback;
@@ -495,6 +527,7 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(IsMethodology));
         OnPropertyChanged(nameof(IsExport));
         OnPropertyChanged(nameof(IsTrends));
+        OnPropertyChanged(nameof(IsPlacowki));
     }
 }
 

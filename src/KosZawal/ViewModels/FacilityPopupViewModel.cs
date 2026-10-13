@@ -14,21 +14,28 @@ public partial class FacilityPopupViewModel : ObservableObject
 {
     private readonly NfzDatabase _database;
     private readonly NfzUmowyClient _client;
+    private readonly RpwdlImporter _rpwdl;
     private readonly HospitalDetail _detail;
     private readonly int _year;
     private readonly CultureInfo _culture = CultureInfo.GetCultureInfo("pl-PL");
     private CancellationTokenSource? _cts;
 
-    public FacilityPopupViewModel(NfzDatabase database, NfzUmowyClient client, HospitalDetail detail, int year)
+    public FacilityPopupViewModel(
+        NfzDatabase database,
+        NfzUmowyClient client,
+        HospitalDetail detail,
+        int year,
+        RpwdlImporter? rpwdl = null)
     {
         _database = database;
         _client = client;
+        _rpwdl = rpwdl ?? new RpwdlImporter();
         _detail = detail;
         _year = year;
         Title = detail.Name;
         Subtitle = $"{detail.Voivodeship}"
                    + (detail.IsLeader ? " · lider województwa (hospitalizacje zawałowe)" : "")
-                   + $" · rok kontraktu {year}";
+                   + $" · rok kontraktu/aktywności {year}";
         BuildExecutionRows();
     }
 
@@ -36,19 +43,25 @@ public partial class FacilityPopupViewModel : ObservableObject
     public ObservableCollection<FacilityPopupRow> CardiologyRows { get; } = [];
     public ObservableCollection<FacilityPopupRow> KosContractRows { get; } = [];
     public ObservableCollection<FacilityPopupRow> ExecutionRows { get; } = [];
+    public ObservableCollection<FacilityPopupRow> StructureSummaryRows { get; } = [];
+    public ObservableCollection<FacilityPopupRow> DepartmentRows { get; } = [];
 
     [ObservableProperty] private string title = "";
     [ObservableProperty] private string subtitle = "";
-    [ObservableProperty] private string statusLine = "Ładowanie kontraktu…";
+    [ObservableProperty] private string statusLine = "Ładowanie danych placówki…";
     [ObservableProperty] private string progress = "";
-    [ObservableProperty] private string footer = "Źródło kontraktów: API Umowy NFZ. Wykonanie: raport Power BI zawałów/KOS-zawał.";
+    [ObservableProperty] private string footer = "Źródła: API Umowy NFZ, RPWDL, raport Power BI zawałów/KOS-zawał.";
     [ObservableProperty] private string providerBlock = "—";
     [ObservableProperty] private string agreementsSummary = "";
     [ObservableProperty] private string cardiologySummary = "";
     [ObservableProperty] private string kosContractSummary = "";
     [ObservableProperty] private string executionSummary = "";
+    [ObservableProperty] private string structureSummary = "";
+    [ObservableProperty] private string departmentsSummary = "";
     [ObservableProperty] private bool isBusy;
+    [ObservableProperty] private bool showDepartments;
     [ObservableProperty] private FacilityContractBundle? contracts;
+    [ObservableProperty] private CenterHospitalData? hospitalStructure;
 
     public async Task EnsureLoadedAsync() => await RefreshAsync(force: false);
 
@@ -59,11 +72,14 @@ public partial class FacilityPopupViewModel : ObservableObject
         var token = _cts.Token;
 
         IsBusy = true;
-        Progress = force ? "Odświeżam dane z API Umowy NFZ…" : "Przygotowuję dane kontraktu…";
+        Progress = "Przygotowuję dane placówki…";
         StatusLine = Progress;
 
         try
         {
+            await EnsureRpwdlAsync(force, token).ConfigureAwait(true);
+            ApplyHospitalStructure(_database.ResolveCenterHospitalData(_detail.Voivodeship, _detail.Name, _year));
+
             FacilityContractBundle? bundle = null;
             if (!force)
                 bundle = _database.TryGetCachedContracts(_detail.Voivodeship, _detail.Name, _year, TimeSpan.FromHours(24));
@@ -86,6 +102,8 @@ public partial class FacilityPopupViewModel : ObservableObject
 
             Contracts = bundle;
             ApplyBundle(bundle);
+            // Po kontrakcie NIP może poprawić mapowanie RPWDL.
+            ApplyHospitalStructure(_database.ResolveCenterHospitalData(_detail.Voivodeship, _detail.Name, _year));
         }
         catch (OperationCanceledException)
         {
@@ -93,14 +111,8 @@ public partial class FacilityPopupViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusLine = "Błąd pobierania kontraktu: " + ex.Message;
-            ProviderBlock = "Nie udało się pobrać danych z API Umowy NFZ.\n" + ex.Message;
-            AgreementsSummary = "Brak danych kontraktowych.";
-            CardiologySummary = "Brak danych.";
-            KosContractSummary = "Brak danych.";
-            AgreementRows.Clear();
-            CardiologyRows.Clear();
-            KosContractRows.Clear();
+            StatusLine = "Błąd pobierania: " + ex.Message;
+            ProviderBlock = "Nie udało się pobrać części danych.\n" + ex.Message;
         }
         finally
         {
@@ -109,9 +121,99 @@ public partial class FacilityPopupViewModel : ObservableObject
         }
     }
 
+    private async Task EnsureRpwdlAsync(bool force, CancellationToken token)
+    {
+        if (!force && _database.HasRpwdlData && _database.IsRpwdlFresh(TimeSpan.FromDays(7)))
+            return;
+
+        Progress = "Pobieram strukturę oddziałów i łóżka z RPWDL…";
+        StatusLine = Progress;
+        var progress = new Progress<string>(text =>
+        {
+            Progress = text;
+            StatusLine = text;
+        });
+        await _rpwdl.ImportAsync(_database, progress, token).ConfigureAwait(true);
+    }
+
+    private void ApplyHospitalStructure(CenterHospitalData data)
+    {
+        HospitalStructure = data;
+        StructureSummaryRows.Clear();
+        DepartmentRows.Clear();
+
+        StructureSummary =
+            $"Mapowanie RPWDL: {data.MappingStatus} ({data.MappingBasis}). {data.SourceNote}";
+
+        StructureSummaryRows.Add(new FacilityPopupRow
+        {
+            Title = $"Łóżka kardiologii: {data.CardiologyBeds.Display(_culture)}",
+            Subtitle = MetricSubtitle(data.CardiologyBeds),
+        });
+        StructureSummaryRows.Add(new FacilityPopupRow
+        {
+            Title = $"Pacjenci kardiologii: {data.CardiologyPatients.Display(_culture)}",
+            Subtitle = MetricSubtitle(data.CardiologyPatients),
+        });
+        StructureSummaryRows.Add(new FacilityPopupRow
+        {
+            Title = $"Hospitalizacje (zawał / raport KOS): {data.CardiologyHospitalizations.Display(_culture)}",
+            Subtitle = MetricSubtitle(data.CardiologyHospitalizations),
+        });
+        StructureSummaryRows.Add(new FacilityPopupRow
+        {
+            Title = $"Rehabilitacja kardiologiczna — łóżka: {data.RehabilitationBeds.Display(_culture)}",
+            Subtitle = MetricSubtitle(data.RehabilitationBeds),
+        });
+
+        if (!string.IsNullOrWhiteSpace(data.ProviderName))
+        {
+            StructureSummaryRows.Insert(0, new FacilityPopupRow
+            {
+                Title = data.ProviderName!,
+                Subtitle = $"NIP {data.Nip} · REGON {data.Regon} · księga RPWDL {data.LedgerId}",
+            });
+        }
+
+        DepartmentsSummary = data.Departments.Count == 0
+            ? "Brak oddziałów kardiologicznych w dopasowanym podmiocie RPWDL."
+            : $"{data.Departments.Count} komórek (kardiologia / OIOK / rehabilitacja / kardiochirurgia).";
+
+        foreach (var department in data.Departments)
+        {
+            DepartmentRows.Add(new FacilityPopupRow
+            {
+                Title = $"{department.SpecialtyCode} · {department.Name}",
+                Subtitle =
+                    $"{department.SpecialtyName} · {department.Category} · {department.Status} · "
+                    + $"łóżka {department.BedsTotal}"
+                    + (department.BedsCardiacIcu > 0 ? $" (w tym intensywny nadzór kardiologiczny: {department.BedsCardiacIcu})" : "")
+                    + $" · {department.Place}",
+            });
+        }
+    }
+
+    private static string MetricSubtitle(CenterMetric metric)
+    {
+        var bits = new List<string>();
+        if (!string.IsNullOrWhiteSpace(metric.MethodologyLabel))
+            bits.Add(metric.MethodologyLabel!);
+        if (metric.PeriodYear is int year)
+            bits.Add($"rok {year}");
+        if (!string.IsNullOrWhiteSpace(metric.ReferenceDate))
+            bits.Add($"stan rejestru {metric.ReferenceDate}");
+        if (!string.IsNullOrWhiteSpace(metric.RetrievedAt))
+            bits.Add($"pobrano {metric.RetrievedAt}");
+        if (!string.IsNullOrWhiteSpace(metric.SourceUrl))
+            bits.Add(metric.SourceUrl!);
+        bits.Add($"zakres: {metric.ScopeLevel}");
+        bits.Add(metric.IsComplete ? "kompletne" : "częściowe/brak");
+        return string.Join(" · ", bits);
+    }
+
     private void ApplyBundle(FacilityContractBundle bundle)
     {
-        Footer = $"{bundle.MetricKindNote} Źródło: {bundle.Source}. Pobrano: {bundle.FetchedAtUtc.ToLocalTime():yyyy-MM-dd HH:mm}.";
+        Footer = $"{bundle.MetricKindNote} Źródło umów: {bundle.Source}. Pobrano: {bundle.FetchedAtUtc.ToLocalTime():yyyy-MM-dd HH:mm}.";
 
         if (bundle.Provider is null)
         {
@@ -206,7 +308,7 @@ public partial class FacilityPopupViewModel : ObservableObject
 
         ExecutionSummary =
             "Dane z raportu NFZ „zawały / KOS-zawał” (Power BI) — REPORTED_ACTIVITY na poziomie świadczeniodawcy. "
-            + "Nie mieszaj ich z wartością zakontraktowaną z API Umowy.";
+            + "Nie mieszaj ich z wartością zakontraktowaną ani z łóżkami RPWDL.";
 
         foreach (var year in _detail.Years.OrderByDescending(y => y.Year))
         {

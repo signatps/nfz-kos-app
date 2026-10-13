@@ -16,6 +16,7 @@ public partial class MainWindow : Window
 
     private NfzDatabase? _database;
     private readonly NfzUmowyClient _umowyClient = new();
+    private readonly RpwdlImporter _rpwdlImporter = new();
     private FacilityPopupWindow? _facilityPopup;
 
     public void ShowData(NfzDatabase database)
@@ -46,7 +47,7 @@ public partial class MainWindow : Window
                 _facilityPopup = null;
             }
 
-            var popupModel = new FacilityPopupViewModel(_database, _umowyClient, detail, year);
+            var popupModel = new FacilityPopupViewModel(_database, _umowyClient, detail, year, _rpwdlImporter);
             _facilityPopup = new FacilityPopupWindow(popupModel)
             {
                 Title = "Kontrakt i KOS · " + detail.Name,
@@ -86,6 +87,16 @@ public partial class MainWindow : Window
     {
         if (sender is Button { Tag: string key } && DataContext is MainViewModel model)
             model.SelectedHospitalKey = key;
+    }
+
+    private void TableGridDoubleTapped(object? sender, Avalonia.Input.TappedEventArgs e)
+    {
+        if (DataContext is not MainViewModel model)
+            return;
+        if (!model.IsPlacowki)
+            return;
+        if (TableGrid.SelectedItem is GridRow row)
+            model.OpenFacilityFromTableRow(row);
     }
 
     private async void SaveCsv(object? sender, Avalonia.Interactivity.RoutedEventArgs e) =>

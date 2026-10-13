@@ -275,9 +275,17 @@
             <DockPanel>
               <DockPanel DockPanel.Dock="Top" Margin="16,14">
                 <CheckBox DockPanel.Dock="Right" Content="Tylko sumy województw" IsChecked="{Binding TrendsAggregateOnly}" IsVisible="{Binding IsTrends}" />
-                <TextBlock Classes="muted" Text="{Binding TableCaption}" VerticalAlignment="Center" />
+                <TextBlock Classes="muted" Text="{Binding TableCaption}" VerticalAlignment="Center" TextWrapping="Wrap" />
               </DockPanel>
-              <DataGrid x:Name="TableGrid" ItemsSource="{Binding Rows}" CanUserSortColumns="True" CanUserResizeColumns="True" />
+              <TextBlock DockPanel.Dock="Top" Margin="16,0,16,10" Classes="muted" TextWrapping="Wrap"
+                         IsVisible="{Binding IsPlacowki}"
+                         Text="Kliknij dwukrotnie wiersz ośrodka, aby otworzyć popup: łóżka/oddziały RPWDL, kontrakt kardiologii i wykonanie KOS." />
+              <DataGrid x:Name="TableGrid"
+                        ItemsSource="{Binding Rows}"
+                        CanUserSortColumns="True"
+                        CanUserResizeColumns="True"
+                        IsReadOnly="True"
+                        DoubleTapped="TableGridDoubleTapped" />
             </DockPanel>
           </Border>
 

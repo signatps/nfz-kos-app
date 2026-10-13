@@ -23,4 +23,10 @@ public partial class FacilityPopupWindow : Window
         if (DataContext is FacilityPopupViewModel model)
             await model.RefreshAsync(force: true);
     }
+
+    private void ToggleDepartmentsClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is FacilityPopupViewModel model)
+            model.ShowDepartments = !model.ShowDepartments;
+    }
 }

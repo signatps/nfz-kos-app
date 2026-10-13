@@ -16,14 +16,17 @@ Dla wybranego roku (domyślnie 2025) i typu zawału:
 
 Osobno widać udział liczony tylko wśród ośrodków, które program realizują.
 
-Mapa korzysta z kafelków OpenStreetMap (wymaga sieci). Widok jest ograniczony do Polski; liderzy województw mają złoty trójkąt, pozostałe ośrodki zwykły punkt. Jest też widok administracyjny (województwa + główne miasta). Kliknięcie ośrodka otwiera popup z:
+Mapa korzysta z kafelków OpenStreetMap (wymaga sieci). Widok jest ograniczony do Polski; liderzy województw mają złoty trójkąt, pozostałe ośrodki zwykły punkt. Jest też widok administracyjny (województwa + główne miasta).
 
-- danymi podmiotu i umowami NFZ (API Umowy, wartość zakontraktowana — `CONTRACT_VALUE`);
-- pozycjami planu w kardiologii / kardiochirurgii;
-- produktem KOS-zawał w kontrakcie (jeśli występuje);
-- wykonaniem z raportu zawałów/KOS-zawał (`REPORTED_ACTIVITY`: hospitalizacje, udział KOS, kontrola 14 dni, rehab 30 dni, zakończenie 365 dni).
+Kliknięcie ośrodka na mapie (albo dwuklik wiersza w **Placówki** / **KOS**) otwiera popup z:
 
-Kwoty umowy nie są przeliczane na liczbę zabiegów. Złoty punkt (nie trójkąt) oznacza położenie przybliżone. Przy awarii log trafia do `%LOCALAPPDATA%\KosZawal\crash.log`.
+- **oddziałami i łóżkami RPWDL** (kardiologia, OIOK, rehabilitacja kardiologiczna, kardiochirurgia) — łóżka zarejestrowane, nie uczestnicy KOS;
+- hospitalizacjami zawałowymi z raportu KOS (osobna metryka; pacjęci kardiologii BASiW — jeszcze bez automatycznego eksportu);
+- danymi podmiotu i umowami NFZ (API Umowy, `CONTRACT_VALUE`);
+- pozycjami planu w kardiologii / KOS-zawał;
+- wykonaniem KOS-zawał (`REPORTED_ACTIVITY`: udział KOS, kontrola 14 dni, rehab 30 dni, zakończenie 365 dni).
+
+Pierwsze otwarcie popupu pobiera eksport RPWDL (~tygodniowy cache). Kwoty umowy nie są przeliczane na liczbę zabiegów. Złoty punkt (nie trójkąt) oznacza położenie przybliżone. Przy awarii log trafia do `%LOCALAPPDATA%\KosZawal\crash.log`.
 
 Komunikat CeZ/NFZ o „40% w 2024” dotyczy udziału wśród przypadków **bez zgonów wewnątrzszpitalnych**. Wskaźnik aplikacji z raportu Power BI liczy wszystkie hospitalizacje i dla 2024 daje ok. 34,5% (typ łącznie).
 
