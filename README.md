@@ -16,7 +16,14 @@ Dla wybranego roku (domyślnie 2025) i typu zawału:
 
 Osobno widać udział liczony tylko wśród ośrodków, które program realizują.
 
-Mapa korzysta z kafelków OpenStreetMap (wymaga sieci). Widok jest ograniczony do Polski; liderzy województw mają złoty trójkąt, pozostałe ośrodki zwykły punkt. Jest też widok administracyjny (województwa + główne miasta). Kliknięcie ośrodka pokazuje historię hospitalizacji i realizacji KOS. Złoty punkt (nie trójkąt) oznacza położenie przybliżone. Przy awarii log trafia do `%LOCALAPPDATA%\KosZawal\crash.log`.
+Mapa korzysta z kafelków OpenStreetMap (wymaga sieci). Widok jest ograniczony do Polski; liderzy województw mają złoty trójkąt, pozostałe ośrodki zwykły punkt. Jest też widok administracyjny (województwa + główne miasta). Kliknięcie ośrodka otwiera popup z:
+
+- danymi podmiotu i umowami NFZ (API Umowy, wartość zakontraktowana — `CONTRACT_VALUE`);
+- pozycjami planu w kardiologii / kardiochirurgii;
+- produktem KOS-zawał w kontrakcie (jeśli występuje);
+- wykonaniem z raportu zawałów/KOS-zawał (`REPORTED_ACTIVITY`: hospitalizacje, udział KOS, kontrola 14 dni, rehab 30 dni, zakończenie 365 dni).
+
+Kwoty umowy nie są przeliczane na liczbę zabiegów. Złoty punkt (nie trójkąt) oznacza położenie przybliżone. Przy awarii log trafia do `%LOCALAPPDATA%\KosZawal\crash.log`.
 
 Komunikat CeZ/NFZ o „40% w 2024” dotyczy udziału wśród przypadków **bez zgonów wewnątrzszpitalnych**. Wskaźnik aplikacji z raportu Power BI liczy wszystkie hospitalizacje i dla 2024 daje ok. 34,5% (typ łącznie).
 
