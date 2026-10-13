@@ -137,6 +137,10 @@
                 <TextBlock Classes="muted" Text="{Binding SelectedHospitalSubtitle}" TextWrapping="Wrap" />
                 <TextBlock Classes="muted" Text="{Binding SelectedHospitalSummary}" TextWrapping="Wrap"
                            IsVisible="{Binding HasSelectedHospital}" />
+                <Button Classes="action" Content="Pełny kontrakt kardiologii / KOS"
+                        Command="{Binding OpenFacilityPopupCommand}"
+                        IsVisible="{Binding HasSelectedHospital}"
+                        HorizontalAlignment="Left" Margin="0,6,0,0" />
               </StackPanel>
 
               <StackPanel Spacing="6" IsVisible="{Binding HasSelectedHospital}">

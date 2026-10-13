@@ -65,3 +65,68 @@ public sealed record HospitalDetail(
     IReadOnlyList<MonthPoint> Monthly);
 
 public sealed record GeoHit(string Voivodeship, string Name, double Latitude, double Longitude, string Quality);
+
+public sealed record NfzProviderInfo(
+    string Code,
+    string Branch,
+    string Name,
+    string Nip,
+    string Regon,
+    string RegistryNumber,
+    string Place,
+    string PostCode,
+    string Street,
+    string Phone);
+
+public sealed record ContractAgreement(
+    string Id,
+    string Code,
+    string ServiceType,
+    string ServiceName,
+    decimal Amount,
+    string UpdatedAt,
+    int Year,
+    string Branch,
+    string ProviderCode,
+    string ProviderName,
+    string ProviderPlace,
+    string ProviderNip,
+    string ProviderRegon);
+
+public sealed record ContractPlanItem(
+    string PlanId,
+    string AgreementCode,
+    string ServiceName,
+    string ProductCode,
+    string ProductName,
+    decimal UnitCount,
+    decimal Price,
+    decimal AvgPrice,
+    string DateFrom,
+    string DateTo);
+
+public sealed record FacilityContractBundle(
+    string Voivodeship,
+    string RequestedName,
+    int Year,
+    string Status,
+    string? Message,
+    DateTime FetchedAtUtc,
+    string Source,
+    string MetricKindNote,
+    NfzProviderInfo? Provider,
+    IReadOnlyList<ContractAgreement> Agreements,
+    IReadOnlyList<ContractPlanItem> CardiologyItems,
+    IReadOnlyList<ContractPlanItem> KosZawalItems)
+{
+    public decimal CardiologyContractValue => CardiologyItems.Sum(item => item.Price);
+    public decimal KosZawalContractValue => KosZawalItems.Sum(item => item.Price);
+    public decimal AgreementsTotalValue => Agreements.Sum(item => item.Amount);
+    public bool HasProvider => Provider is not null;
+    public bool HasCardiology => CardiologyItems.Count > 0;
+    public bool HasKosZawalContract => KosZawalItems.Count > 0;
+
+    public static FacilityContractBundle Missing(string voivodeship, string name, int year, string message) =>
+        new(voivodeship, name, year, "missing", message, DateTime.UtcNow, NfzUmowyClient.SourceUrl,
+            "Brak danych kontraktowych z API Umowy NFZ.", null, [], [], []);
+}

@@ -1,0 +1,118 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:KosZawal"
+        x:Class="KosZawal.FacilityPopupWindow"
+        x:DataType="vm:FacilityPopupViewModel"
+        Width="920" Height="720"
+        MinWidth="760" MinHeight="560"
+        WindowStartupLocation="CenterOwner"
+        Background="#F3F0E8"
+        FontFamily="Inter, Segoe UI, sans-serif"
+        Title="Placówka · kontrakt i wykonanie KOS">
+  <DockPanel Margin="18">
+    <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+      <Button DockPanel.Dock="Right" Classes="action" Content="Zamknij" Click="CloseClick" MinWidth="120" />
+      <Button DockPanel.Dock="Right" Classes="quiet" Content="Odśwież z API Umowy" Click="RefreshClick"
+              Margin="0,0,8,0" IsEnabled="{Binding !IsBusy}" />
+      <TextBlock Classes="muted" Text="{Binding Footer}" TextWrapping="Wrap" VerticalAlignment="Center" />
+    </DockPanel>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Spacing="14">
+        <StackPanel Spacing="4">
+          <TextBlock Classes="card-kicker" Text="PLACÓWKA MEDYCZNA" />
+          <TextBlock Text="{Binding Title}" FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap" />
+          <TextBlock Classes="muted" Text="{Binding Subtitle}" TextWrapping="Wrap" />
+          <TextBlock Text="{Binding StatusLine}" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <Border Classes="card" IsVisible="{Binding IsBusy}">
+          <TextBlock Text="{Binding Progress}" TextWrapping="Wrap" />
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="8">
+            <TextBlock Classes="card-kicker" Text="DANE PODMIOTU (API UMOWY NFZ)" />
+            <TextBlock Text="{Binding ProviderBlock}" TextWrapping="Wrap" LineHeight="22" />
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="8">
+            <TextBlock Classes="card-kicker" Text="UMOWY — WARTOŚĆ ZAKONTRAKTOWANA (CONTRACT_VALUE)" />
+            <TextBlock Classes="muted" Text="{Binding AgreementsSummary}" TextWrapping="Wrap" />
+            <ItemsControl ItemsSource="{Binding AgreementRows}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:FacilityPopupRow">
+                  <Border Margin="0,0,0,6" Background="#EFEBE3" CornerRadius="8" Padding="10,8">
+                    <StackPanel Spacing="2">
+                      <TextBlock FontWeight="SemiBold" Text="{Binding Title}" TextWrapping="Wrap" />
+                      <TextBlock Classes="muted" Text="{Binding Subtitle}" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="8">
+            <TextBlock Classes="card-kicker" Text="KARDIOLOGIA — POZYCJE PLANU (CONTRACT_VALUE / CONTRACT_UNITS)" />
+            <TextBlock Classes="muted" Text="{Binding CardiologySummary}" TextWrapping="Wrap" />
+            <ItemsControl ItemsSource="{Binding CardiologyRows}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:FacilityPopupRow">
+                  <Border Margin="0,0,0,6" Background="#E7F1F0" CornerRadius="8" Padding="10,8">
+                    <StackPanel Spacing="2">
+                      <TextBlock FontWeight="SemiBold" Text="{Binding Title}" TextWrapping="Wrap" />
+                      <TextBlock Classes="muted" Text="{Binding Subtitle}" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="8">
+            <TextBlock Classes="card-kicker" Text="KOS-ZAWAŁ W KONTRAKCIE (CONTRACT_VALUE)" />
+            <TextBlock Classes="muted" Text="{Binding KosContractSummary}" TextWrapping="Wrap" />
+            <ItemsControl ItemsSource="{Binding KosContractRows}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:FacilityPopupRow">
+                  <Border Margin="0,0,0,6" Background="#F7EDEA" CornerRadius="8" Padding="10,8">
+                    <StackPanel Spacing="2">
+                      <TextBlock FontWeight="SemiBold" Text="{Binding Title}" TextWrapping="Wrap" />
+                      <TextBlock Classes="muted" Text="{Binding Subtitle}" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="8">
+            <TextBlock Classes="card-kicker" Text="WYKONANIE — RAPORT ZAWALÓW / KOS-ZAWAŁ (REPORTED_ACTIVITY)" />
+            <TextBlock Classes="muted" Text="{Binding ExecutionSummary}" TextWrapping="Wrap" />
+            <ItemsControl ItemsSource="{Binding ExecutionRows}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:FacilityPopupRow">
+                  <Border Margin="0,0,0,6" Background="#EFEBE3" CornerRadius="8" Padding="10,8">
+                    <StackPanel Spacing="2">
+                      <TextBlock FontWeight="SemiBold" Text="{Binding Title}" TextWrapping="Wrap" />
+                      <TextBlock Classes="muted" Text="{Binding Subtitle}" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>

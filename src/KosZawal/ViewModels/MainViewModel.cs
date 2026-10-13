@@ -135,6 +135,7 @@ public partial class MainViewModel : ObservableObject
     public IReadOnlyList<VoivodeshipStat> RegionStats => Kpi?.ByVoivodeship ?? [];
 
     public event Action? TableChanged;
+    public event Action<HospitalDetail, int>? FacilityPopupRequested;
 
     public void Activate(NavItem item)
     {
@@ -358,6 +359,9 @@ public partial class MainViewModel : ObservableObject
                     Status = year.IsKos ? "KOS" : "poza KOS",
                 });
             }
+
+            // Popup z kontraktem kardiologii + KOS/KOS-zawał (API Umowy + wykonanie z raportu).
+            FacilityPopupRequested?.Invoke(SelectedHospital, Year);
         }
 
         NotifyHospital();
@@ -385,6 +389,14 @@ public partial class MainViewModel : ObservableObject
     private void ClearHospital()
     {
         SelectedHospitalKey = null;
+    }
+
+    [RelayCommand]
+    private void OpenFacilityPopup()
+    {
+        if (SelectedHospital is null)
+            return;
+        FacilityPopupRequested?.Invoke(SelectedHospital, Year);
     }
 
     private string BuildMethodology()

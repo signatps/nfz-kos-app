@@ -3,6 +3,7 @@ using Avalonia.Data;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 
 namespace KosZawal;
 
@@ -13,13 +14,46 @@ public partial class MainWindow : Window
         InitializeComponent();
     }
 
+    private NfzDatabase? _database;
+    private readonly NfzUmowyClient _umowyClient = new();
+    private FacilityPopupWindow? _facilityPopup;
+
     public void ShowData(NfzDatabase database)
     {
+        _database = database;
         var model = new MainViewModel(database);
         DataContext = model;
         model.TableChanged += RebuildGrid;
+        model.FacilityPopupRequested += OpenFacilityPopup;
         model.Load();
         RebuildGrid();
+    }
+
+    private void OpenFacilityPopup(HospitalDetail detail, int year)
+    {
+        if (_database is null)
+            return;
+
+        // Odłóż poza setter SelectedHospitalKey / binding.
+        Dispatcher.UIThread.Post(async () =>
+        {
+            if (_database is null)
+                return;
+
+            if (_facilityPopup is not null)
+            {
+                _facilityPopup.Close();
+                _facilityPopup = null;
+            }
+
+            var popupModel = new FacilityPopupViewModel(_database, _umowyClient, detail, year);
+            _facilityPopup = new FacilityPopupWindow(popupModel)
+            {
+                Title = "Kontrakt i KOS · " + detail.Name,
+            };
+            _facilityPopup.Closed += (_, _) => _facilityPopup = null;
+            await _facilityPopup.ShowDialog(this);
+        }, DispatcherPriority.Background);
     }
 
     private void RebuildGrid()

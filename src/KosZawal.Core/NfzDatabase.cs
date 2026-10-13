@@ -518,6 +518,257 @@ public sealed class NfzDatabase : IDisposable
         return new HospitalDetail(voivodeship, name, infarctType, isLeader, quality, lat, lon, years, monthly);
     }
 
+    public FacilityContractBundle? TryGetCachedContracts(string voivodeship, string name, int year, TimeSpan maxAge)
+    {
+        using var command = _connection.CreateCommand();
+        command.CommandText = """
+            SELECT fetched_at, status, message, source, metric_note,
+                   provider_code, provider_branch, provider_name, provider_nip, provider_regon,
+                   provider_registry, provider_place, provider_post, provider_street, provider_phone
+            FROM umowy_cache
+            WHERE wojewodztwo = $woj AND swiadczeniodawca = $name AND rok = $year
+            LIMIT 1;
+            """;
+        command.Parameters.AddWithValue("$woj", voivodeship);
+        command.Parameters.AddWithValue("$name", name);
+        command.Parameters.AddWithValue("$year", year);
+        using var reader = command.ExecuteReader();
+        if (!reader.Read())
+            return null;
+
+        var fetchedAt = DateTime.Parse(reader.GetString(0), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+        if (DateTime.UtcNow - fetchedAt.ToUniversalTime() > maxAge)
+            return null;
+
+        var status = reader.GetString(1);
+        var message = reader.IsDBNull(2) ? null : reader.GetString(2);
+        var source = reader.GetString(3);
+        var metricNote = reader.GetString(4);
+        NfzProviderInfo? provider = null;
+        if (!reader.IsDBNull(5) && !string.IsNullOrWhiteSpace(reader.GetString(5)))
+        {
+            provider = new NfzProviderInfo(
+                reader.GetString(5),
+                reader.IsDBNull(6) ? "" : reader.GetString(6),
+                reader.IsDBNull(7) ? "" : reader.GetString(7),
+                reader.IsDBNull(8) ? "" : reader.GetString(8),
+                reader.IsDBNull(9) ? "" : reader.GetString(9),
+                reader.IsDBNull(10) ? "" : reader.GetString(10),
+                reader.IsDBNull(11) ? "" : reader.GetString(11),
+                reader.IsDBNull(12) ? "" : reader.GetString(12),
+                reader.IsDBNull(13) ? "" : reader.GetString(13),
+                reader.IsDBNull(14) ? "" : reader.GetString(14));
+        }
+
+        reader.Close();
+        var agreements = ReadCachedAgreements(voivodeship, name, year);
+        var items = ReadCachedPlanItems(voivodeship, name, year);
+        return new FacilityContractBundle(
+            voivodeship,
+            name,
+            year,
+            status,
+            message,
+            fetchedAt.ToUniversalTime(),
+            source,
+            metricNote,
+            provider,
+            agreements,
+            items.Where(NfzUmowyClient.IsCardiologyProduct).OrderByDescending(i => i.Price).ToList(),
+            items.Where(NfzUmowyClient.IsKosZawalProduct).OrderByDescending(i => i.Price).ToList());
+    }
+
+    public void SaveContracts(FacilityContractBundle bundle)
+    {
+        using var transaction = _connection.BeginTransaction();
+        using (var delete = _connection.CreateCommand())
+        {
+            delete.Transaction = transaction;
+            delete.CommandText = """
+                DELETE FROM umowy_cache WHERE wojewodztwo = $woj AND swiadczeniodawca = $name AND rok = $year;
+                DELETE FROM umowy_pozycje WHERE wojewodztwo = $woj AND swiadczeniodawca = $name AND rok = $year;
+                DELETE FROM umowy_naglowki WHERE wojewodztwo = $woj AND swiadczeniodawca = $name AND rok = $year;
+                """;
+            delete.Parameters.AddWithValue("$woj", bundle.Voivodeship);
+            delete.Parameters.AddWithValue("$name", bundle.RequestedName);
+            delete.Parameters.AddWithValue("$year", bundle.Year);
+            delete.ExecuteNonQuery();
+        }
+
+        using (var insert = _connection.CreateCommand())
+        {
+            insert.Transaction = transaction;
+            insert.CommandText = """
+                INSERT INTO umowy_cache(
+                    wojewodztwo, swiadczeniodawca, rok, fetched_at, status, message, source, metric_note,
+                    provider_code, provider_branch, provider_name, provider_nip, provider_regon,
+                    provider_registry, provider_place, provider_post, provider_street, provider_phone)
+                VALUES(
+                    $woj, $name, $year, $fetched, $status, $message, $source, $metric,
+                    $pcode, $pbranch, $pname, $pnip, $pregon, $preg, $pplace, $ppost, $pstreet, $pphone);
+                """;
+            insert.Parameters.AddWithValue("$woj", bundle.Voivodeship);
+            insert.Parameters.AddWithValue("$name", bundle.RequestedName);
+            insert.Parameters.AddWithValue("$year", bundle.Year);
+            insert.Parameters.AddWithValue("$fetched", bundle.FetchedAtUtc.ToString("O", CultureInfo.InvariantCulture));
+            insert.Parameters.AddWithValue("$status", bundle.Status);
+            insert.Parameters.AddWithValue("$message", (object?)bundle.Message ?? DBNull.Value);
+            insert.Parameters.AddWithValue("$source", bundle.Source);
+            insert.Parameters.AddWithValue("$metric", bundle.MetricKindNote);
+            insert.Parameters.AddWithValue("$pcode", (object?)bundle.Provider?.Code ?? DBNull.Value);
+            insert.Parameters.AddWithValue("$pbranch", (object?)bundle.Provider?.Branch ?? DBNull.Value);
+            insert.Parameters.AddWithValue("$pname", (object?)bundle.Provider?.Name ?? DBNull.Value);
+            insert.Parameters.AddWithValue("$pnip", (object?)bundle.Provider?.Nip ?? DBNull.Value);
+            insert.Parameters.AddWithValue("$pregon", (object?)bundle.Provider?.Regon ?? DBNull.Value);
+            insert.Parameters.AddWithValue("$preg", (object?)bundle.Provider?.RegistryNumber ?? DBNull.Value);
+            insert.Parameters.AddWithValue("$pplace", (object?)bundle.Provider?.Place ?? DBNull.Value);
+            insert.Parameters.AddWithValue("$ppost", (object?)bundle.Provider?.PostCode ?? DBNull.Value);
+            insert.Parameters.AddWithValue("$pstreet", (object?)bundle.Provider?.Street ?? DBNull.Value);
+            insert.Parameters.AddWithValue("$pphone", (object?)bundle.Provider?.Phone ?? DBNull.Value);
+            insert.ExecuteNonQuery();
+        }
+
+        using (var insert = _connection.CreateCommand())
+        {
+            insert.Transaction = transaction;
+            insert.CommandText = """
+                INSERT INTO umowy_naglowki(
+                    wojewodztwo, swiadczeniodawca, rok, agreement_id, code, service_type, service_name,
+                    amount, updated_at, branch, provider_code)
+                VALUES($woj, $name, $year, $id, $code, $stype, $sname, $amount, $updated, $branch, $pcode);
+                """;
+            foreach (var agreement in bundle.Agreements)
+            {
+                insert.Parameters.Clear();
+                insert.Parameters.AddWithValue("$woj", bundle.Voivodeship);
+                insert.Parameters.AddWithValue("$name", bundle.RequestedName);
+                insert.Parameters.AddWithValue("$year", bundle.Year);
+                insert.Parameters.AddWithValue("$id", agreement.Id);
+                insert.Parameters.AddWithValue("$code", agreement.Code);
+                insert.Parameters.AddWithValue("$stype", agreement.ServiceType);
+                insert.Parameters.AddWithValue("$sname", agreement.ServiceName);
+                insert.Parameters.AddWithValue("$amount", agreement.Amount.ToString(CultureInfo.InvariantCulture));
+                insert.Parameters.AddWithValue("$updated", agreement.UpdatedAt);
+                insert.Parameters.AddWithValue("$branch", agreement.Branch);
+                insert.Parameters.AddWithValue("$pcode", agreement.ProviderCode);
+                insert.ExecuteNonQuery();
+            }
+        }
+
+        var allItems = bundle.CardiologyItems
+            .Concat(bundle.KosZawalItems)
+            .GroupBy(item => item.PlanId + "\u001f" + item.ProductCode + "\u001f" + item.ProductName)
+            .Select(group => group.First())
+            .ToList();
+        // Zachowaj też pozycje zagregowane bez PlanId unikalnego — zapisujemy listę wynikową.
+        if (allItems.Count == 0)
+            allItems = bundle.CardiologyItems.Concat(bundle.KosZawalItems).ToList();
+
+        using (var insert = _connection.CreateCommand())
+        {
+            insert.Transaction = transaction;
+            insert.CommandText = """
+                INSERT INTO umowy_pozycje(
+                    wojewodztwo, swiadczeniodawca, rok, plan_id, agreement_code, service_name,
+                    product_code, product_name, unit_count, price, avg_price, date_from, date_to, kind)
+                VALUES($woj, $name, $year, $pid, $acode, $sname, $pcode, $pname, $units, $price, $avg, $from, $to, $kind);
+                """;
+            foreach (var item in bundle.CardiologyItems.Concat(bundle.KosZawalItems)
+                         .GroupBy(i => i.ProductCode + "\u001f" + i.ProductName + "\u001f" + i.AgreementCode)
+                         .Select(g => g.First()))
+            {
+                var kind = NfzUmowyClient.IsKosZawalProduct(item)
+                    ? "kos-zawal"
+                    : NfzUmowyClient.IsCardiologyProduct(item) ? "kardiologia" : "inne";
+                insert.Parameters.Clear();
+                insert.Parameters.AddWithValue("$woj", bundle.Voivodeship);
+                insert.Parameters.AddWithValue("$name", bundle.RequestedName);
+                insert.Parameters.AddWithValue("$year", bundle.Year);
+                insert.Parameters.AddWithValue("$pid", item.PlanId);
+                insert.Parameters.AddWithValue("$acode", item.AgreementCode);
+                insert.Parameters.AddWithValue("$sname", item.ServiceName);
+                insert.Parameters.AddWithValue("$pcode", item.ProductCode);
+                insert.Parameters.AddWithValue("$pname", item.ProductName);
+                insert.Parameters.AddWithValue("$units", item.UnitCount.ToString(CultureInfo.InvariantCulture));
+                insert.Parameters.AddWithValue("$price", item.Price.ToString(CultureInfo.InvariantCulture));
+                insert.Parameters.AddWithValue("$avg", item.AvgPrice.ToString(CultureInfo.InvariantCulture));
+                insert.Parameters.AddWithValue("$from", item.DateFrom);
+                insert.Parameters.AddWithValue("$to", item.DateTo);
+                insert.Parameters.AddWithValue("$kind", kind);
+                insert.ExecuteNonQuery();
+            }
+        }
+
+        transaction.Commit();
+    }
+
+    private IReadOnlyList<ContractAgreement> ReadCachedAgreements(string voivodeship, string name, int year)
+    {
+        using var command = _connection.CreateCommand();
+        command.CommandText = """
+            SELECT agreement_id, code, service_type, service_name, amount, updated_at, branch, provider_code
+            FROM umowy_naglowki
+            WHERE wojewodztwo = $woj AND swiadczeniodawca = $name AND rok = $year
+            ORDER BY CAST(amount AS REAL) DESC;
+            """;
+        command.Parameters.AddWithValue("$woj", voivodeship);
+        command.Parameters.AddWithValue("$name", name);
+        command.Parameters.AddWithValue("$year", year);
+        var list = new List<ContractAgreement>();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            list.Add(new ContractAgreement(
+                reader.GetString(0),
+                reader.GetString(1),
+                reader.GetString(2),
+                reader.GetString(3),
+                decimal.Parse(reader.GetString(4), CultureInfo.InvariantCulture),
+                reader.IsDBNull(5) ? "" : reader.GetString(5),
+                year,
+                reader.IsDBNull(6) ? "" : reader.GetString(6),
+                reader.IsDBNull(7) ? "" : reader.GetString(7),
+                name,
+                "",
+                "",
+                ""));
+        }
+
+        return list;
+    }
+
+    private IReadOnlyList<ContractPlanItem> ReadCachedPlanItems(string voivodeship, string name, int year)
+    {
+        using var command = _connection.CreateCommand();
+        command.CommandText = """
+            SELECT plan_id, agreement_code, service_name, product_code, product_name,
+                   unit_count, price, avg_price, date_from, date_to
+            FROM umowy_pozycje
+            WHERE wojewodztwo = $woj AND swiadczeniodawca = $name AND rok = $year;
+            """;
+        command.Parameters.AddWithValue("$woj", voivodeship);
+        command.Parameters.AddWithValue("$name", name);
+        command.Parameters.AddWithValue("$year", year);
+        var list = new List<ContractPlanItem>();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            list.Add(new ContractPlanItem(
+                reader.IsDBNull(0) ? "" : reader.GetString(0),
+                reader.IsDBNull(1) ? "" : reader.GetString(1),
+                reader.IsDBNull(2) ? "" : reader.GetString(2),
+                reader.IsDBNull(3) ? "" : reader.GetString(3),
+                reader.IsDBNull(4) ? "" : reader.GetString(4),
+                decimal.Parse(reader.GetString(5), CultureInfo.InvariantCulture),
+                decimal.Parse(reader.GetString(6), CultureInfo.InvariantCulture),
+                decimal.Parse(reader.GetString(7), CultureInfo.InvariantCulture),
+                reader.IsDBNull(8) ? "" : reader.GetString(8),
+                reader.IsDBNull(9) ? "" : reader.GetString(9)));
+        }
+
+        return list;
+    }
+
     public void Dispose() => _connection.Dispose();
 
     private List<object?[]> QueryOffset(
@@ -649,6 +900,56 @@ public sealed class NfzDatabase : IDisposable
                 lon REAL,
                 jakosc TEXT,
                 PRIMARY KEY (wojewodztwo, swiadczeniodawca)
+            );
+            CREATE TABLE IF NOT EXISTS umowy_cache (
+                wojewodztwo TEXT,
+                swiadczeniodawca TEXT,
+                rok INTEGER,
+                fetched_at TEXT,
+                status TEXT,
+                message TEXT,
+                source TEXT,
+                metric_note TEXT,
+                provider_code TEXT,
+                provider_branch TEXT,
+                provider_name TEXT,
+                provider_nip TEXT,
+                provider_regon TEXT,
+                provider_registry TEXT,
+                provider_place TEXT,
+                provider_post TEXT,
+                provider_street TEXT,
+                provider_phone TEXT,
+                PRIMARY KEY (wojewodztwo, swiadczeniodawca, rok)
+            );
+            CREATE TABLE IF NOT EXISTS umowy_naglowki (
+                wojewodztwo TEXT,
+                swiadczeniodawca TEXT,
+                rok INTEGER,
+                agreement_id TEXT,
+                code TEXT,
+                service_type TEXT,
+                service_name TEXT,
+                amount TEXT,
+                updated_at TEXT,
+                branch TEXT,
+                provider_code TEXT
+            );
+            CREATE TABLE IF NOT EXISTS umowy_pozycje (
+                wojewodztwo TEXT,
+                swiadczeniodawca TEXT,
+                rok INTEGER,
+                plan_id TEXT,
+                agreement_code TEXT,
+                service_name TEXT,
+                product_code TEXT,
+                product_name TEXT,
+                unit_count TEXT,
+                price TEXT,
+                avg_price TEXT,
+                date_from TEXT,
+                date_to TEXT,
+                kind TEXT
             );
             """);
     }
